@@ -1,0 +1,10 @@
+
+\.gradle/
+
+\.idea/
+
+build/
+
+*.iml
+
+app/rtmp/release/
