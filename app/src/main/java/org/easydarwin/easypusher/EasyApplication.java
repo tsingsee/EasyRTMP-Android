@@ -123,7 +123,7 @@ public class EasyApplication extends Application {
     }
 
     public static boolean isRTMP() {
-        return "rtmp".equals(BuildConfig.FLAVOR);
+        return true;
     }
 
     @Subscribe

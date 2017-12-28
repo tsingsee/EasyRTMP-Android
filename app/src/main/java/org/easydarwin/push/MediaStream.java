@@ -87,9 +87,7 @@ public class MediaStream {
     public MediaStream(Context context, SurfaceTexture texture, boolean enableVideo) {
         mApplicationContext = context;
         mSurfaceHolderRef = new WeakReference(texture);
-        if (EasyApplication.isRTMP())
-            mEasyPusher = new EasyRTMP();
-        else mEasyPusher = new EasyPusher();
+        mEasyPusher = new EasyRTMP();
         mCameraThread = new HandlerThread("CAMERA"){
             public void run(){
                 try{

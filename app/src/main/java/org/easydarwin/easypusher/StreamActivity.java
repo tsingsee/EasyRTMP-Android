@@ -46,7 +46,6 @@ import org.easydarwin.bus.StopRecord;
 import org.easydarwin.bus.StreamStat;
 import org.easydarwin.bus.SupportResolution;
 import org.easydarwin.easyrtmp.push.EasyRTMP;
-import org.easydarwin.push.EasyPusher;
 import org.easydarwin.push.InitCallback;
 import org.easydarwin.push.MediaStream;
 import org.easydarwin.update.UpdateMgr;
@@ -145,20 +144,10 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
         if (RecordService.mEasyPusher != null) {
             button.setText("停止推送屏幕");
             TextView viewById = (TextView) findViewById(R.id.push_screen_url);
-            if (EasyApplication.isRTMP()) {
-                viewById.setText(EasyApplication.getEasyApplication().getUrl() + "_s");
-            } else {
-                String ip = EasyApplication.getEasyApplication().getIp();
-                String port = EasyApplication.getEasyApplication().getPort();
-                String id = EasyApplication.getEasyApplication().getId();
-                viewById.setText(String.format("URL:\nrtsp://%s:%s/%s_s.sdp", ip, port, id));
-            }
+            viewById.setText(EasyApplication.getEasyApplication().getUrl() + "_s");
         }
 
-        String url = "http://www.easydarwin.org/versions/easypusher/version.txt";
-        if (EasyApplication.isRTMP()) {
-            url = "http://www.easydarwin.org/versions/easyrtmp/version.txt";
-        }
+        String url = "http://www.easydarwin.org/versions/easyrtmp/version.txt";
 
         update = new UpdateMgr(this);
         update.checkUpdate(url);
@@ -266,14 +255,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
             startService(intent);
             TextView viewById = (TextView) findViewById(R.id.push_screen_url);
 
-            if (EasyApplication.isRTMP()) {
-                viewById.setText(EasyApplication.getEasyApplication().getUrl() + "_s");
-            } else {
-                String ip = EasyApplication.getEasyApplication().getIp();
-                String port = EasyApplication.getEasyApplication().getPort();
-                String id = EasyApplication.getEasyApplication().getId();
-                viewById.setText(String.format("URL:\nrtsp://%s:%s/%s_s.sdp", ip, port, id));
-            }
+            viewById.setText(EasyApplication.getEasyApplication().getUrl() + "_s");
             Button button = (Button) findViewById(R.id.push_screen);
             button.setText("停止推送屏幕");
         } else {
@@ -384,14 +366,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
         if (mMediaStream.isStreaming()) {
             sendMessage("推流中");
             btnSwitch.setText("停止");
-            if (EasyApplication.isRTMP()) {
-                txtStreamAddress.setText(EasyApplication.getEasyApplication().getUrl());
-            } else {
-                String ip = EasyApplication.getEasyApplication().getIp();
-                String port = EasyApplication.getEasyApplication().getPort();
-                String id = EasyApplication.getEasyApplication().getId();
-                txtStreamAddress.setText(String.format("rtsp://%s:%s/%s.sdp", ip, port, id));
-            }
+            txtStreamAddress.setText(EasyApplication.getEasyApplication().getUrl());
         }
     }
 
@@ -424,95 +399,47 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
             break;
             case R.id.btn_switch:
                 if (!mMediaStream.isStreaming()) {
-                    String url = null;
-                    if (EasyApplication.isRTMP()) {
-                        url = EasyApplication.getEasyApplication().getUrl();
-                        mMediaStream.startStream(url, new InitCallback() {
-                            @Override
-                            public void onCallback(int code) {
-                                switch (code) {
-                                    case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_INVALID_KEY:
-                                        sendMessage("无效Key");
-                                        break;
-                                    case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_SUCCESS:
-                                        sendMessage("激活成功");
-                                        break;
-                                    case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_CONNECTING:
-                                        sendMessage("连接中");
-                                        break;
-                                    case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_CONNECTED:
-                                        sendMessage("连接成功");
-                                        break;
-                                    case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_CONNECT_FAILED:
-                                        sendMessage("连接失败");
-                                        break;
-                                    case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_CONNECT_ABORT:
-                                        sendMessage("连接异常中断");
-                                        break;
-                                    case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_PUSHING:
-                                        sendMessage("推流中");
-                                        break;
-                                    case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_DISCONNECTED:
-                                        sendMessage("断开连接");
-                                        break;
-                                    case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_PLATFORM_ERR:
-                                        sendMessage("平台不匹配");
-                                        break;
-                                    case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_COMPANY_ID_LEN_ERR:
-                                        sendMessage("断授权使用商不匹配");
-                                        break;
-                                    case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_PROCESS_NAME_LEN_ERR:
-                                        sendMessage("进程名称长度不匹配");
-                                        break;
-                                }
+                    String url = EasyApplication.getEasyApplication().getUrl();
+                    mMediaStream.startStream(url, new InitCallback() {
+                        @Override
+                        public void onCallback(int code) {
+                            switch (code) {
+                                case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_INVALID_KEY:
+                                    sendMessage("无效Key");
+                                    break;
+                                case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_SUCCESS:
+                                    sendMessage("激活成功");
+                                    break;
+                                case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_CONNECTING:
+                                    sendMessage("连接中");
+                                    break;
+                                case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_CONNECTED:
+                                    sendMessage("连接成功");
+                                    break;
+                                case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_CONNECT_FAILED:
+                                    sendMessage("连接失败");
+                                    break;
+                                case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_CONNECT_ABORT:
+                                    sendMessage("连接异常中断");
+                                    break;
+                                case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_PUSHING:
+                                    sendMessage("推流中");
+                                    break;
+                                case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_DISCONNECTED:
+                                    sendMessage("断开连接");
+                                    break;
+                                case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_PLATFORM_ERR:
+                                    sendMessage("平台不匹配");
+                                    break;
+                                case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_COMPANY_ID_LEN_ERR:
+                                    sendMessage("断授权使用商不匹配");
+                                    break;
+                                case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_PROCESS_NAME_LEN_ERR:
+                                    sendMessage("进程名称长度不匹配");
+                                    break;
                             }
-                        });
-                    } else {
-                        String ip = EasyApplication.getEasyApplication().getIp();
-                        String port = EasyApplication.getEasyApplication().getPort();
-                        String id = EasyApplication.getEasyApplication().getId();
-                        mMediaStream.startStream(ip, port, id, new InitCallback() {
-                            @Override
-                            public void onCallback(int code) {
-                                switch (code) {
-                                    case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_INVALID_KEY:
-                                        sendMessage("无效Key");
-                                        break;
-                                    case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_SUCCESS:
-                                        sendMessage("激活成功");
-                                        break;
-                                    case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECTING:
-                                        sendMessage("连接中");
-                                        break;
-                                    case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECTED:
-                                        sendMessage("连接成功");
-                                        break;
-                                    case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECT_FAILED:
-                                        sendMessage("连接失败");
-                                        break;
-                                    case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_CONNECT_ABORT:
-                                        sendMessage("连接异常中断");
-                                        break;
-                                    case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_PUSHING:
-                                        sendMessage("推流中");
-                                        break;
-                                    case EasyPusher.OnInitPusherCallback.CODE.EASY_PUSH_STATE_DISCONNECTED:
-                                        sendMessage("断开连接");
-                                        break;
-                                    case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_PLATFORM_ERR:
-                                        sendMessage("平台不匹配");
-                                        break;
-                                    case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_COMPANY_ID_LEN_ERR:
-                                        sendMessage("断授权使用商不匹配");
-                                        break;
-                                    case EasyPusher.OnInitPusherCallback.CODE.EASY_ACTIVATE_PROCESS_NAME_LEN_ERR:
-                                        sendMessage("进程名称长度不匹配");
-                                        break;
-                                }
-                            }
-                        });
-                        url = String.format("rtsp://%s:%s/%s.sdp", ip, port, id);
-                    }
+                        }
+                    });
                     btnSwitch.setText("停止");
                     txtStreamAddress.setText(url);
                 } else {
@@ -629,8 +556,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     private void goonWithAvailableTexture(SurfaceTexture surface) {
-        final File easyPusher = new File(Environment.getExternalStorageDirectory() + (EasyApplication.isRTMP() ? "/EasyRTMP"
-                : "/EasyPusher"));
+        final File easyPusher = new File(Environment.getExternalStorageDirectory() +"/EasyRTMP");
         easyPusher.mkdir();
         MediaStream ms = mService.getMediaStream();
         if (ms != null) {    // switch from background to front
@@ -641,13 +567,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
             mMediaStream = ms;
 
             if (ms.isStreaming()) {
-                String ip = EasyApplication.getEasyApplication().getIp();
-                String port = EasyApplication.getEasyApplication().getPort();
-                String id = EasyApplication.getEasyApplication().getId();
-                String url = String.format("rtsp://%s:%s/%s.sdp", ip, port, id);
-                if (EasyApplication.isRTMP()) {
-                    url = EasyApplication.getEasyApplication().getUrl();
-                }
+                String url = EasyApplication.getEasyApplication().getUrl();
                 btnSwitch.setText("停止");
                 txtStreamAddress.setText(url);
                 sendMessage("推流中");

@@ -21,8 +21,6 @@ import android.view.Surface;
 import android.view.WindowManager;
 
 import org.easydarwin.easyrtmp.push.EasyRTMP;
-import org.easydarwin.push.EasyPusher;
-import org.easydarwin.push.InitCallback;
 import org.easydarwin.push.Pusher;
 
 import java.io.IOException;
@@ -111,16 +109,9 @@ public class RecordService extends Service {
             @Override
             public void run() {
                 String url = null;
-                if (EasyApplication.isRTMP()) {mEasyPusher = new EasyRTMP();
-                    url = EasyApplication.getEasyApplication().getUrl() + "_s";
-                    mEasyPusher.initPush(url, getApplicationContext(), null);
-                }else{mEasyPusher = new EasyPusher();
-                    String ip = EasyApplication.getEasyApplication().getIp();
-                    String port = EasyApplication.getEasyApplication().getPort();
-                    String id = EasyApplication.getEasyApplication().getId();
-                    mEasyPusher.initPush(ip,port,String.format("%s_s.sdp", id),getApplicationContext(), null);
-                }
-
+                mEasyPusher = new EasyRTMP();
+                url = EasyApplication.getEasyApplication().getUrl() + "_s";
+                mEasyPusher.initPush(url, getApplicationContext(), null);
                 while (mPushThread != null) {
                     int index = mMediaCodec.dequeueOutputBuffer(mBufferInfo, 10000);
                     Log.i(TAG, "dequeue output buffer index=" + index);
