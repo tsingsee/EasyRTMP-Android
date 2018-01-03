@@ -21,7 +21,7 @@ EasyRTMP是EasyDarwin流媒体团队开发的一个RTMP流媒体音/视频直播
  
 ## 工作流程 ##
  
-![EasyPusher Work Flow](http://www.easydarwin.org/github/images/easyrtmp/easyrtmp_android_workfolw.png)
+![EasyPusher Work Flow](http://www.easydarwin.org/github/images/easyrtmp/easyrtmp_workfolw.png)
  
 ### 调用示例 ###
 
