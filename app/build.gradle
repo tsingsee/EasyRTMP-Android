@@ -20,6 +20,7 @@ android {
         versionCode 22
         versionName "1.3.17.1014"
         testInstrumentationRunner 'android.support.test.runner.AndroidJUnitRunner'
+        flavorDimensions "versionCode"
     }
     buildTypes {
         release {
@@ -34,6 +35,9 @@ android {
         variant.outputs.all {
             outputFileName = variant.flavorName + "-" + variant.versionCode + "-" + variant.versionName + ".apk"
         }
+    }
+    productFlavors {
+        rtmp {}
     }
 }
 
