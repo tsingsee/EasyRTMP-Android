@@ -1,4 +1,4 @@
-# EasyRTMP-Android
+# EasyRTMP-Android #
  
 A simple, robust, low latency RTMP video&audio&screen stream pusher and recorder on android. 精炼、稳定、高效的安卓前/后摄像头/手机桌面屏幕采集、编码、RTMP/FLV直播推送工具，充分秉承了RTMP在即时通信领域中的技术特点，网络条件满足的情况下，延时控制在300ms~500ms，非常适合于互联网直播、应急指挥、4G执法、远程遥控与视频直播等行业领域；
  
