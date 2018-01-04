@@ -2,7 +2,7 @@
  
 A simple, robust, low latency RTMP video&audio&screen stream pusher and recorder on android. 精炼、稳定、高效的安卓前/后摄像头/手机桌面屏幕采集、编码、RTMP/FLV直播推送工具，充分秉承了RTMP在即时通信领域中的技术特点，网络条件满足的情况下，延时控制在300ms~500ms，非常适合于互联网直播、应急指挥、4G执法、远程遥控与视频直播等行业领域；
  
-EasyRTMP是EasyDarwin流媒体团队开发的一个RTMP流媒体音/视频直播推送产品组件，全平台支持(包括Windows/Linux(32 & 64)，ARM各平台，Android、iOS)，通过EasyRTMP我们就可以避免接触到稍显复杂的RTMP/FLV打包推送流程，只需要调用EasyRTMP的几个API接口，就能轻松、稳定地把流媒体音视频数据推送给RTMP流媒体服务器进行转发和分发，尤其是与EasyDSS流媒体服务器、[EasyPlayer-RTMP播放器](https://github.com/EasyDSS/EasyPlayer-RTMP "EasyPlayer-RTMP")、[EasyPlayerPro播放器](https://github.com/EasyDSS/EasyPlayerPro "EasyPlayerPro")可以无缝衔接，EasyRTMP从16年开始发展和迭代，经过长时间的企业用户和项目检验，稳定性非常高;
+EasyRTMP是EasyDarwin流媒体团队开发的一个RTMP流媒体音/视频直播推送产品组件，全平台支持(包括Windows/Linux(32 & 64)，ARM各平台，Android、iOS)，通过EasyRTMP我们就可以避免接触到稍显复杂的RTMP/FLV打包推送流程，只需要调用EasyRTMP的几个API接口，就能轻松、稳定地把流媒体音视频数据推送给RTMP流媒体服务器进行转发和分发，尤其是与[EasyDSS流媒体服务器](http://www.easydss.com "EasyDSS")、[EasyPlayer-RTMP播放器](https://github.com/EasyDSS/EasyPlayer-RTMP "EasyPlayer-RTMP")、[EasyPlayerPro播放器](https://github.com/EasyDSS/EasyPlayerPro "EasyPlayerPro")可以无缝衔接，EasyRTMP从16年开始发展和迭代，经过长时间的企业用户和项目检验，稳定性非常高;
  
 ## 功能点支持 ##
  
