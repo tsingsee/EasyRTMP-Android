@@ -10,6 +10,7 @@ import android.content.ComponentName;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.graphics.SurfaceTexture;
 import android.media.Image;
@@ -56,6 +57,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.jar.Manifest;
 
+import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
+import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static org.easydarwin.easypusher.EasyApplication.BUS;
 import static org.easydarwin.update.UpdateMgr.MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE;
 
@@ -64,6 +67,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
     static final String TAG = "EasyPusher";
     public static final int REQUEST_MEDIA_PROJECTION = 1002;
     public static final int REQUEST_CAMERA_PERMISSION = 1003;
+    public static final int REQUEST_STORAGE_PERMISSION = 1004;
 
     //默认分辨率
     int width = 640, height = 480;
@@ -105,8 +109,8 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         BUS.register(this);
-        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED ||
-                ActivityCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PERMISSION_GRANTED ||
+                ActivityCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.CAMERA, android.Manifest.permission.RECORD_AUDIO}, REQUEST_CAMERA_PERMISSION);
             mNeedGrantedPermission = true;
             return;
@@ -631,6 +635,10 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     public void onRecord(View view) {
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PERMISSION_GRANTED){
+            ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_STORAGE_PERMISSION);
+            return;
+        }
         ImageButton ib = (ImageButton) view;
         if (mMediaStream != null) {
             if (mMediaStream.isRecording()) {
@@ -645,5 +653,22 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
 
     public void onClickResolution(View view) {
         findViewById(R.id.spn_resolution).performClick();
+    }
+
+    public void onSwitchOrientation(View view) {
+        if (mMediaStream != null) {
+            if (mMediaStream.isStreaming()){
+                Toast.makeText(this,"正在推送中,无法更改屏幕方向", Toast.LENGTH_SHORT).show();
+                return;
+            }
+        }
+        int orientation = getRequestedOrientation();
+        if (orientation == SCREEN_ORIENTATION_UNSPECIFIED || orientation == ActivityInfo.SCREEN_ORIENTATION_PORTRAIT){
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+
+        }else{
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        }
+//        if (mMediaStream != null) mMediaStream.setDgree(getDgree());
     }
 }
