@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2012-2017 EasyDarwin.ORG.  All rights reserved.
+	Copyright (c) 2012-2018 EasyDarwin.ORG.  All rights reserved.
 	Github: https://github.com/EasyDarwin
 	WEChat: EasyDarwin
 	Website: http://www.easydarwin.org
@@ -92,7 +92,7 @@ public class EasyRTMP implements Pusher {
     @Override
     public synchronized void initPush(final String url, final Context context, final InitCallback callback, int fps) {
         /*
-        *本Key为3个月临时授权License，如需商业使用，请邮件至support@easydarwin.org申请此产品的授权。
+        *本Key为3个月临时授权License，如需商业使用，请邮件至support@easydarwin.org了解此产品的授权信息。
         */
         Log.d(TAG, "startpush begin");
         mPusherObj = init(url, RTMP_KEY, context, new OnInitPusherCallback() {
