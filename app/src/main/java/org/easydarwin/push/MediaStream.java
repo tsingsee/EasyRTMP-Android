@@ -707,12 +707,11 @@ public class MediaStream {
         for (int i = 0; i < cf.length; i++) {
             sets.add(cf[i]);
         }
-        if (sets.contains(COLOR_FormatYUV420Planar)) {
-            return COLOR_FormatYUV420Planar;
-        } else
         if (sets.contains(COLOR_FormatYUV420SemiPlanar)) {
             return COLOR_FormatYUV420SemiPlanar;
-        }   else if (sets.contains(COLOR_FormatYUV420PackedPlanar)) {
+        } else if (sets.contains(COLOR_FormatYUV420Planar)) {
+            return COLOR_FormatYUV420Planar;
+        } else if (sets.contains(COLOR_FormatYUV420PackedPlanar)) {
             return COLOR_FormatYUV420PackedPlanar;
         } else if (sets.contains(COLOR_TI_FormatYUV420PackedSemiPlanar)) {
             return COLOR_TI_FormatYUV420PackedSemiPlanar;
