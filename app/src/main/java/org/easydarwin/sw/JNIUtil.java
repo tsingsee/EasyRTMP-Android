@@ -58,4 +58,17 @@ public class JNIUtil {
 
     private static native void callMethod(String methodName, Object[] returnValue, Object... params);
 
+
+
+
+    /**
+     * NULL, yuv_to_yvu, yuv_to_yuvuv, yuv_to_yvuvu,yuvuv_to_yuv, yuvuv_to_yvu, yuvuv_to_yvuvu,
+     * @param data
+     * @param width
+     * @param height
+     * @param mode
+     */
+    public static native void yuvConvert(byte[] data, int width, int height, int mode);
+
+
 }

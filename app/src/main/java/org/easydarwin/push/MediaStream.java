@@ -55,6 +55,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import dagger.Module;
 import dagger.Provides;
 
+import static android.graphics.ImageFormat.NV21;
 import static android.graphics.ImageFormat.YV12;
 import static android.media.MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420PackedPlanar;
 import static android.media.MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar;
@@ -86,7 +87,7 @@ public class MediaStream {
     private EasyMuxer mMuxer;
     private final HandlerThread mCameraThread;
     private final Handler mCameraHandler;
-    private int previewFormat;
+//    private int previewFormat;
     public static CodecInfo info  = new CodecInfo();
 
     public MediaStream(Context context, SurfaceTexture texture) {
@@ -134,11 +135,7 @@ public class MediaStream {
                         int cameraRotationOffset = camInfo.orientation;
 
                         if (cameraRotationOffset % 180 != 0) {
-                            if (previewFormat == YV12) {
-                                yuvRotate(data, 0, width, height, cameraRotationOffset);
-                            } else {
-                                yuvRotate(data, 1, width, height, cameraRotationOffset);
-                            }
+                            yuvRotate(data, 1, width, height, cameraRotationOffset);
                         }
                         save2file(data, String.format("/sdcard/yuv_%d_%d.yuv", height, width));
                     }
@@ -147,7 +144,7 @@ public class MediaStream {
                         txt = "EasyPusher " + new SimpleDateFormat("yy-MM-dd HH:mm:ss SSS").format(new Date());
                         overlay.overlay(data, txt);
                     }
-                    mVC.onVideo(data, previewFormat);
+                    mVC.onVideo(data, NV21);
                     mCamera.addCallbackBuffer(data);
                 }
 
@@ -243,23 +240,11 @@ public class MediaStream {
             ArrayList<CodecInfo> infos = listEncoders("video/avc");
             if (infos.isEmpty()) mSWCodec = true;
             if (mSWCodec){
-                previewFormat = YV12;
             }else{
                 CodecInfo ci = infos.get(0);
                 info.mName = ci.mName;
                 info.mColorFormat = ci.mColorFormat;
-                previewFormat = ImageFormat.NV21;
-                if (info.mColorFormat == COLOR_FormatYUV420SemiPlanar) {
-                    previewFormat = ImageFormat.NV21;
-                } else if (info.mColorFormat == COLOR_TI_FormatYUV420PackedSemiPlanar) {
-                    previewFormat = ImageFormat.NV21;
-                } else if (info.mColorFormat == COLOR_FormatYUV420Planar) {
-                    previewFormat = ImageFormat.YV12;
-                } else {
-                    previewFormat = ImageFormat.YV12;
-                }
             }
-            parameters.setPreviewFormat(previewFormat);
 //            List<Camera.Size> sizes = parameters.getSupportedPreviewSizes();
             parameters.setPreviewSize(width, height);
 //            parameters.setPreviewFpsRange(max[0], max[1]);
@@ -706,12 +691,12 @@ public class MediaStream {
         List<Integer> sets = new ArrayList<>();
         for (int i = 0; i < cf.length; i++) {
             sets.add(cf[i]);
+        }if (sets.contains(COLOR_FormatYUV420Planar)) {
+            return COLOR_FormatYUV420Planar;
         }
         if (sets.contains(COLOR_FormatYUV420SemiPlanar)) {
             return COLOR_FormatYUV420SemiPlanar;
-        } else if (sets.contains(COLOR_FormatYUV420Planar)) {
-            return COLOR_FormatYUV420Planar;
-        } else if (sets.contains(COLOR_FormatYUV420PackedPlanar)) {
+        }   else if (sets.contains(COLOR_FormatYUV420PackedPlanar)) {
             return COLOR_FormatYUV420PackedPlanar;
         } else if (sets.contains(COLOR_TI_FormatYUV420PackedSemiPlanar)) {
             return COLOR_TI_FormatYUV420PackedSemiPlanar;

@@ -15,6 +15,9 @@ import org.easydarwin.sw.JNIUtil;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+import static android.media.MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar;
+import static android.media.MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar;
+import static android.media.MediaCodecInfo.CodecCapabilities.COLOR_TI_FormatYUV420PackedSemiPlanar;
 import static org.easydarwin.push.MediaStream.info;
 
 /**
@@ -71,10 +74,16 @@ public class HWConsumer extends Thread implements VideoConsumer {
                 time = millisPerframe - time;
                 if (time > 0) Thread.sleep(time / 2);
             }
-            if (format == ImageFormat.YV12) {
-                JNIUtil.yV12ToYUV420P(data, mWidth, mHeight);
+
+
+            if (info.mColorFormat == COLOR_FormatYUV420SemiPlanar) {
+                JNIUtil.yuvConvert(data, mWidth, mHeight, 6);
+            } else if (info.mColorFormat == COLOR_TI_FormatYUV420PackedSemiPlanar) {
+                JNIUtil.yuvConvert(data, mWidth, mHeight, 6);
+            } else if (info.mColorFormat == COLOR_FormatYUV420Planar) {
+                JNIUtil.yuvConvert(data, mWidth, mHeight, 5);
             } else {
-                JNIUtil.nV21To420SP(data, mWidth, mHeight);
+                JNIUtil.yuvConvert(data, mWidth, mHeight, 5);
             }
             int bufferIndex = mMediaCodec.dequeueInputBuffer(0);
             if (bufferIndex >= 0) {
