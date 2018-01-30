@@ -38,6 +38,7 @@ EasyRTMP是EasyDarwin/EasyDSS流媒体团队开发的一个RTMP流媒体音/视�
 	![](http://www.easydarwin.org/github/images/easyrtmpios20170409.png)
 
 ## 调用过程 ##
+
 ![EasyRTMP](http://www.easydarwin.org/skin/easydarwin/images/easyrtmp20161101.png)
 
 
@@ -47,7 +48,7 @@ EasyRTMP是EasyDarwin/EasyDSS流媒体团队开发的一个RTMP流媒体音/视�
 
 - Tel：13718530929
 
-- QQ交流群：[587254841](https://jq.qq.com/?_wv=1027&k=5dkmdix "EasyRTMP")
+- QQ交流群：<a href="https://jq.qq.com/?_wv=1027&k=5dkmdix" title="EasyRTMP" target="_blank">**587254841**</a>
 
 > EasyRTMP是一款非常稳定的RTMP推流直播组件，各平台版本需要经过授权才能商业使用，商业授权方案可以通过以上渠道进行更深入的技术与合作咨询；
 
