@@ -141,7 +141,7 @@ public class MediaStream {
                     }
                     if (PreferenceManager.getDefaultSharedPreferences(mApplicationContext).getBoolean("key_enable_video_overlay", false)) {
                         String txt = String.format("drawtext=fontfile=" + mApplicationContext.getFileStreamPath("SIMYOU.ttf") + ": text='%s%s':x=(w-text_w)/2:y=H-60 :fontcolor=white :box=1:boxcolor=0x00000000@0.3", "EasyPusher", new SimpleDateFormat("yyyy-MM-ddHHmmss").format(new Date()));
-                        txt = "EasyPusher " + new SimpleDateFormat("yy-MM-dd HH:mm:ss SSS").format(new Date());
+                        txt = "EasyRTMP " + new SimpleDateFormat("yy-MM-dd HH:mm:ss SSS").format(new Date());
                         overlay.overlay(data, txt);
                     }
                     mVC.onVideo(data, NV21);
