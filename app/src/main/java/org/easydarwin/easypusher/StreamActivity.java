@@ -60,6 +60,7 @@ import java.util.jar.Manifest;
 import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static org.easydarwin.easypusher.EasyApplication.BUS;
+import static org.easydarwin.easypusher.SettingActivity.REQUEST_OVERLAY_PERMISSION;
 import static org.easydarwin.update.UpdateMgr.MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE;
 
 public class StreamActivity extends AppCompatActivity implements View.OnClickListener, TextureView.SurfaceTextureListener {
@@ -274,6 +275,21 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
             new AlertDialog.Builder(this).setMessage("推送屏幕需要安卓5.0以上,您当前系统版本过低,不支持该功能。").setTitle("抱歉").show();
             return;
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (!Settings.canDrawOverlays(this)) {
+
+                new AlertDialog.Builder(this).setMessage("推送屏幕需要APP出现在顶部.是否确定?").setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+
+                        final Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + BuildConfig.APPLICATION_ID));
+                        startActivityForResult(intent, REQUEST_OVERLAY_PERMISSION);
+                    }
+                }).setNegativeButton(android.R.string.cancel,null).setCancelable(false).show();
+                return;
+            }
         }
 
         if (!PreferenceManager.getDefaultSharedPreferences(this).getBoolean("alert_screen_background_pushing", false)) {

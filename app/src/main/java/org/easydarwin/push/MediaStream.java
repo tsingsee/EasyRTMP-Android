@@ -87,8 +87,8 @@ public class MediaStream {
     private EasyMuxer mMuxer;
     private final HandlerThread mCameraThread;
     private final Handler mCameraHandler;
-//    private int previewFormat;
-    public static CodecInfo info  = new CodecInfo();
+    //    private int previewFormat;
+    public static CodecInfo info = new CodecInfo();
 
     public MediaStream(Context context, SurfaceTexture texture) {
         this(context, texture, true);
@@ -98,9 +98,9 @@ public class MediaStream {
         mApplicationContext = context;
         mSurfaceHolderRef = new WeakReference(texture);
         mEasyPusher = new EasyRTMP();
-        mCameraThread = new HandlerThread("CAMERA"){
-            public void run(){
-                try{
+        mCameraThread = new HandlerThread("CAMERA") {
+            public void run() {
+                try {
                     super.run();
                 } catch (Throwable e) {
                     Intent intent = new Intent(mApplicationContext, BackgroundCameraService.class);
@@ -239,8 +239,8 @@ public class MediaStream {
 
             ArrayList<CodecInfo> infos = listEncoders("video/avc");
             if (infos.isEmpty()) mSWCodec = true;
-            if (mSWCodec){
-            }else{
+            if (mSWCodec) {
+            } else {
                 CodecInfo ci = infos.get(0);
                 info.mName = ci.mName;
                 info.mColorFormat = ci.mColorFormat;
@@ -498,17 +498,17 @@ public class MediaStream {
         if (mCamera != null) {
             mCamera.stopPreview();
             mCamera.setPreviewCallbackWithBuffer(null);
-            Log.i(TAG,"StopPreview");
+            Log.i(TAG, "StopPreview");
         }
         if (audioStream != null) {
             audioStream.stop();
-            Log.i(TAG,"Stop AudioStream");
+            Log.i(TAG, "Stop AudioStream");
             audioStream = null;
         }
         if (mVC != null) {
             mVC.onVideoStop();
 
-            Log.i(TAG,"Stop VC");
+            Log.i(TAG, "Stop VC");
         }
         if (overlay != null)
             overlay.release();
@@ -691,12 +691,12 @@ public class MediaStream {
         List<Integer> sets = new ArrayList<>();
         for (int i = 0; i < cf.length; i++) {
             sets.add(cf[i]);
-        }if (sets.contains(COLOR_FormatYUV420Planar)) {
-            return COLOR_FormatYUV420Planar;
         }
         if (sets.contains(COLOR_FormatYUV420SemiPlanar)) {
             return COLOR_FormatYUV420SemiPlanar;
-        }   else if (sets.contains(COLOR_FormatYUV420PackedPlanar)) {
+        } else if (sets.contains(COLOR_FormatYUV420Planar)) {
+            return COLOR_FormatYUV420Planar;
+        } else if (sets.contains(COLOR_FormatYUV420PackedPlanar)) {
             return COLOR_FormatYUV420PackedPlanar;
         } else if (sets.contains(COLOR_TI_FormatYUV420PackedSemiPlanar)) {
             return COLOR_TI_FormatYUV420PackedSemiPlanar;

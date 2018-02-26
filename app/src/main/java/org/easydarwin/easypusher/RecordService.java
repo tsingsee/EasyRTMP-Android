@@ -3,7 +3,12 @@ package org.easydarwin.easypusher;
 import android.annotation.TargetApi;
 import android.app.Service;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
 import android.media.MediaCodec;
@@ -11,20 +16,35 @@ import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.os.IBinder;
+import android.os.Vibrator;
+import android.preference.PreferenceManager;
+import android.provider.Settings;
 import android.support.annotation.Nullable;
+import android.support.v7.app.AlertDialog;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.GestureDetector;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.Surface;
+import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.WindowManager;
+import android.widget.ImageButton;
+import android.widget.Toast;
 
 import org.easydarwin.easyrtmp.push.EasyRTMP;
 import org.easydarwin.push.Pusher;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+
+import static org.easydarwin.easypusher.SettingActivity.REQUEST_OVERLAY_PERMISSION;
 
 
 public class RecordService extends Service {
@@ -50,6 +70,11 @@ public class RecordService extends Service {
     static Pusher mEasyPusher;
     private Thread mPushThread;
     private byte[] mPpsSps;
+    private WindowManager mWindowManager;
+    private View mLayout;
+    private WindowManager.LayoutParams param;
+    private GestureDetector mGD;
+    private View.OnTouchListener listener;
 
     @Nullable
     @Override
@@ -64,7 +89,115 @@ public class RecordService extends Service {
         createEnvironment();
         configureMedia();
         startPush();
+
+
+        mWindowManager = (WindowManager) getApplicationContext().getSystemService(Context.WINDOW_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (!Settings.canDrawOverlays(this)) {
+                return;
+            }
+        }
+
+
+        showView();
     }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        return START_STICKY;
+    }
+
+    private void showView() {
+        if (mLayout != null) return;
+        mLayout = LayoutInflater.from(this).inflate(R.layout.float_btn, null);
+
+        param = new WindowManager.LayoutParams();
+
+
+        param.type = WindowManager.LayoutParams.TYPE_SYSTEM_ALERT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+            param.type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
+        }
+        param.format = 1;
+        param.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+        param.flags = param.flags | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL;
+        param.flags = param.flags | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS;
+
+        param.alpha = 1.0f;
+
+        param.gravity = Gravity.LEFT | Gravity.TOP;
+
+        param.width = (int) (getResources().getDisplayMetrics().density * 50);
+        param.height = (int) (getResources().getDisplayMetrics().density * 40);
+
+        param.x = getResources().getDisplayMetrics().widthPixels - param.width - getResources().getDimensionPixelSize(R.dimen.activity_horizontal_margin);
+        param.y = getResources().getDisplayMetrics().heightPixels / 2 - param.height / 2;
+
+        param.x = PreferenceManager.getDefaultSharedPreferences(this).getInt("float_btn_x", param.x);
+        param.y = PreferenceManager.getDefaultSharedPreferences(this).getInt("float_btn_y", param.y);
+
+        mWindowManager.addView(mLayout, param);
+
+
+
+        mGD = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+
+
+            public boolean mScroll;
+            int x;
+            int y;
+
+            @Override
+            public boolean onSingleTapUp(MotionEvent e) {
+                Intent intent = new Intent(RecordService.this, StreamActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT);
+                startActivity(intent);
+                return true;
+            }
+
+            @Override
+            public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+                if (!mScroll && Math.sqrt((e1.getX() - e2.getX()) * (e1.getX() - e2.getX()) + (e1.getY() - e2.getY()) * (e1.getY() - e2.getY())) > ViewConfiguration.get(RecordService.this).getScaledTouchSlop()) {
+                    mScroll = true;
+                }
+                if (!mScroll) {
+                    return false;
+                } else {
+
+                    WindowManager.LayoutParams p = (WindowManager.LayoutParams) mLayout.getLayoutParams();
+                    p.x = (int) (x + e2.getRawX() - e1.getRawX());
+                    p.y = (int) (y + e2.getRawY() - e1.getRawY());
+                    mWindowManager.updateViewLayout(mLayout, p);
+                    return true;
+                }
+            }
+
+            @Override
+            public boolean onDown(MotionEvent e) {
+                if (mLayout == null) return true;
+                mScroll = false;
+                WindowManager.LayoutParams p = (WindowManager.LayoutParams) mLayout.getLayoutParams();
+                x = p.x;
+                y = p.y;
+                return super.onDown(e);
+            }
+        });
+        listener = new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                return mGD.onTouchEvent(event);
+            }
+        };
+
+        mLayout.setOnTouchListener(listener);
+    }
+
+    private void hideView() {
+        if (mLayout == null) return;
+        mWindowManager.removeView(mLayout);
+        mLayout = null;
+    }
+
 
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
     private void configureMedia() {
@@ -240,6 +373,7 @@ public class RecordService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        hideView();
         stopPush();
         release();
         if (mMpj != null) {
