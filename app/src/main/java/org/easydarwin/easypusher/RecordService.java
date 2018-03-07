@@ -38,6 +38,7 @@ import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.Toast;
 
+import org.easydarwin.audio.AudioStream;
 import org.easydarwin.easyrtmp.push.EasyRTMP;
 import org.easydarwin.push.Pusher;
 
@@ -62,12 +63,13 @@ public class RecordService extends Service {
     private MediaCodec mMediaCodec;
 
     private WindowManager wm;
+    final AudioStream audioStream = AudioStream.getInstance();
 
 
 
     private MediaCodec.BufferInfo mBufferInfo = new MediaCodec.BufferInfo();
 
-    static Pusher mEasyPusher;
+    public static Pusher mEasyPusher;
     private Thread mPushThread;
     private byte[] mPpsSps;
     private WindowManager mWindowManager;
@@ -229,10 +231,22 @@ public class RecordService extends Service {
         wm.getDefaultDisplay().getMetrics(displayMetrics);
         screenDensity = displayMetrics.densityDpi;
 
-        while (windowWidth > 480){
-            windowWidth /= 2;
-            windowHeight /=2;
+        if (windowWidth > windowHeight) {
+            while (windowHeight > 720) {
+                windowWidth /= 2;
+                windowHeight /= 2;
+            }
+        }else{
+            while (windowWidth > 720) {
+                windowWidth /= 2;
+                windowHeight /= 2;
+            }
         }
+        windowWidth /= 16;
+        windowWidth *= 16;
+
+        windowHeight /= 16;
+        windowHeight *= 16;
     }
 
     private void startPush() {
@@ -245,47 +259,52 @@ public class RecordService extends Service {
                 mEasyPusher = new EasyRTMP();
                 url = EasyApplication.getEasyApplication().getUrl() + "_s";
                 mEasyPusher.initPush(url, getApplicationContext(), null);
-                while (mPushThread != null) {
-                    int index = mMediaCodec.dequeueOutputBuffer(mBufferInfo, 10000);
-                    Log.i(TAG, "dequeue output buffer index=" + index);
+                try {
+                    audioStream.addPusher(mEasyPusher);
+                    while (mPushThread != null) {
+                        int index = mMediaCodec.dequeueOutputBuffer(mBufferInfo, 10000);
+                        Log.i(TAG, "dequeue output buffer index=" + index);
 
-                    if (index == MediaCodec.INFO_TRY_AGAIN_LATER) {//请求超时
-                        try {
-                            // wait 10ms
-                            Thread.sleep(10);
-                        } catch (InterruptedException e) {
-                        }
-                    } else if (index >= 0) {//有效输出
+                        if (index == MediaCodec.INFO_TRY_AGAIN_LATER) {//请求超时
+                            try {
+                                // wait 10ms
+                                Thread.sleep(10);
+                            } catch (InterruptedException e) {
+                            }
+                        } else if (index >= 0) {//有效输出
 
-                        ByteBuffer outputBuffer = mMediaCodec.getOutputBuffer(index);
+                            ByteBuffer outputBuffer = mMediaCodec.getOutputBuffer(index);
 
 
-                        byte[] outData = new byte[mBufferInfo.size];
-                        outputBuffer.get(outData);
+                            byte[] outData = new byte[mBufferInfo.size];
+                            outputBuffer.get(outData);
 
 //                        String data0 = String.format("%x %x %x %x %x %x %x %x %x %x ", outData[0], outData[1], outData[2], outData[3], outData[4], outData[5], outData[6], outData[7], outData[8], outData[9]);
 //                        Log.e("out_data", data0);
 
-                        //记录pps和sps
-                        int type = outData[4] & 0x07;
-                        if (type == 7 || type == 8) {
-                            mPpsSps = outData;
-                        } else if (type == 5) {
-                            //在关键帧前面加上pps和sps数据
-                            if (mPpsSps != null) {
-                                byte[] iframeData = new byte[mPpsSps.length + outData.length];
-                                System.arraycopy(mPpsSps, 0, iframeData, 0, mPpsSps.length);
-                                System.arraycopy(outData, 0, iframeData, mPpsSps.length, outData.length);
-                                outData = iframeData;
+                            //记录pps和sps
+                            int type = outData[4] & 0x07;
+                            if (type == 7 || type == 8) {
+                                mPpsSps = outData;
+                            } else if (type == 5) {
+                                //在关键帧前面加上pps和sps数据
+                                if (mPpsSps != null) {
+                                    byte[] iframeData = new byte[mPpsSps.length + outData.length];
+                                    System.arraycopy(mPpsSps, 0, iframeData, 0, mPpsSps.length);
+                                    System.arraycopy(outData, 0, iframeData, mPpsSps.length, outData.length);
+                                    outData = iframeData;
+                                }
                             }
+
+                            mEasyPusher.push(outData, mBufferInfo.presentationTimeUs / 1000, 1);
+
+
+                            mMediaCodec.releaseOutputBuffer(index, false);
                         }
 
-                        mEasyPusher.push(outData, mBufferInfo.presentationTimeUs/1000, 1);
-
-
-                        mMediaCodec.releaseOutputBuffer(index, false);
                     }
-
+                }finally {
+                    audioStream.removePusher(mEasyPusher);
                 }
             }
         };

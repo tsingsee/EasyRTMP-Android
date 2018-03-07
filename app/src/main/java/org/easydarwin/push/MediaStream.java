@@ -77,7 +77,7 @@ public class MediaStream {
     WeakReference<SurfaceTexture> mSurfaceHolderRef;
     Camera mCamera;
     boolean pushStream = false;//是否要推送数据
-    AudioStream audioStream;
+    final AudioStream audioStream = AudioStream.getInstance();
     private boolean isCameraBack = true;
     private int mDgree;
     private Context mApplicationContext;
@@ -444,8 +444,7 @@ public class MediaStream {
                 ex.printStackTrace();
             }
         }
-        audioStream = new AudioStream(mEasyPusher);
-        audioStream.startRecord();
+        audioStream.addPusher(mEasyPusher);
     }
 
     @Provides
@@ -501,9 +500,8 @@ public class MediaStream {
             Log.i(TAG, "StopPreview");
         }
         if (audioStream != null) {
-            audioStream.stop();
+            audioStream.removePusher(mEasyPusher);
             Log.i(TAG, "Stop AudioStream");
-            audioStream = null;
         }
         if (mVC != null) {
             mVC.onVideoStop();

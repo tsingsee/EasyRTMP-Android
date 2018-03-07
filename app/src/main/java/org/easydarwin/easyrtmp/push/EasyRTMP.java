@@ -131,6 +131,7 @@ public class EasyRTMP implements Pusher {
         }
         if (mPusherObj == 0) return;
 
+        Log.d(TAG,"push " +  type  + " time: " + timestamp);
         push(mPusherObj, data, offset, length, timestamp,type);
     }
 }
