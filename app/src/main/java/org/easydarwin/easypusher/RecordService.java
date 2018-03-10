@@ -231,22 +231,45 @@ public class RecordService extends Service {
         wm.getDefaultDisplay().getMetrics(displayMetrics);
         screenDensity = displayMetrics.densityDpi;
 
-        if (windowWidth > windowHeight) {
-            while (windowHeight > 720) {
-                windowWidth /= 2;
-                windowHeight /= 2;
-            }
-        }else{
-            while (windowWidth > 720) {
-                windowWidth /= 2;
-                windowHeight /= 2;
-            }
-        }
-        windowWidth /= 16;
-        windowWidth *= 16;
 
-        windowHeight /= 16;
-        windowHeight *= 16;
+        int defaultIdx = PreferenceManager.getDefaultSharedPreferences(this).getInt("screen_pushing_res_index", 3);
+//        new AlertDialog.Builder(this).setTitle("推送屏幕辨率").setSingleChoiceItems(
+//                new CharSequence[]{"1倍屏幕大小","0.75倍屏幕大小","0.5倍屏幕大小","0.3倍屏幕大小","0.25倍屏幕大小","0.2倍屏幕大小"}
+
+        switch (defaultIdx){
+            case 0:
+
+                break;
+            case 1:
+                windowWidth *= 0.75;
+                windowHeight *= 0.75;
+                break;
+            case 2:
+
+                windowWidth *= 0.5;
+                windowHeight *= 0.5;
+                break;
+            case 3:
+
+                windowWidth *= 0.3;
+                windowHeight *= 0.3;
+                break;
+            case 4:
+
+                windowWidth *= 0.25;
+                windowHeight *= 0.25;
+                break;
+            case 5:
+                windowWidth *= 0.2;
+                windowHeight *= 0.2;
+                break;
+        }
+
+//        windowWidth /= 16;
+//        windowWidth *= 16;
+//
+//        windowHeight /= 16;
+//        windowHeight *= 16;
     }
 
     private void startPush() {

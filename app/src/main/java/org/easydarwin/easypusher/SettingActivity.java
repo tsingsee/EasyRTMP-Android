@@ -186,4 +186,17 @@ public class SettingActivity extends AppCompatActivity {
             }
         }
     }
+
+    public void onScreenPushResolution(View view) {
+        int defaultIdx = PreferenceManager.getDefaultSharedPreferences(this).getInt("screen_pushing_res_index", 3);
+        new AlertDialog.Builder(this).setTitle("推送屏幕分辨率").setSingleChoiceItems(
+                new CharSequence[]{"1倍屏幕大小","0.75倍屏幕大小","0.5倍屏幕大小","0.3倍屏幕大小","0.25倍屏幕大小","0.2倍屏幕大小"}, defaultIdx, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                PreferenceManager.getDefaultSharedPreferences(SettingActivity.this).edit().putInt("screen_pushing_res_index", which).apply();
+                Toast.makeText(SettingActivity.this,"配置更改将在下次启动屏幕推送时生效", Toast.LENGTH_SHORT).show();
+                dialog.dismiss();
+            }
+        }).show();
+    }
 }

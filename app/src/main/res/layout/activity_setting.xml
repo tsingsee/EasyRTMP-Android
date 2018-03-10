@@ -77,6 +77,7 @@
         android:checked="false"
         android:text="使用软编码" />
 
+
     <CheckBox
         android:id="@+id/enable_video_overlay"
         android:layout_width="match_parent"
@@ -97,6 +98,13 @@
         android:onClick="onOpenLocalRecord"
         android:text="打开录像文件夹"/>
 
+    <Button
+        android:id="@+id/screen_push_resolution"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:checked="false"
+        android:onClick="onScreenPushResolution"
+        android:text="推送屏幕分辨率" />
     <Button
         android:id="@+id/btn_save"
         android:layout_width="match_parent"
