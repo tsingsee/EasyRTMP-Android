@@ -205,7 +205,11 @@ public class RecordService extends Service {
     private void configureMedia() {
 
         MediaFormat mediaFormat = MediaFormat.createVideoFormat("video/avc", windowWidth, windowHeight);
-        mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, 1200000);
+        int bitrate = (int) (windowWidth * windowHeight * 25 * 2 * 0.05f);
+        if (windowWidth >= 1920 || windowHeight >= 1920) bitrate *= 0.3;
+        else if (windowWidth >= 1280 || windowHeight >= 1280) bitrate *= 0.4;
+        else if (windowWidth >= 720 || windowHeight >= 720) bitrate *= 0.6;
+        mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, bitrate);
         mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, 25);
         mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
         mediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1);

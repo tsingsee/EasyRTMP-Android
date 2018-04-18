@@ -62,7 +62,14 @@ public class JNIUtil {
 
 
     /**
-     * NULL, yuv_to_yvu, yuv_to_yuvuv, yuv_to_yvuvu,yuvuv_to_yuv, yuvuv_to_yvu, yuvuv_to_yvuvu,
+     * 0 NULL,
+     * 1 yuv_to_yvu,
+     * 2 yuv_to_yuvuv,
+     * 3 yuv_to_yvuvu,
+     * 4 yuvuv_to_yuv,
+     * 5 yuvuv_to_yvu,
+     * 6 yuvuv_to_yvuvu,
+     *
      * @param data
      * @param width
      * @param height
