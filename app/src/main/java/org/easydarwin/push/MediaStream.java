@@ -502,6 +502,7 @@ public class MediaStream {
         if (audioStream != null) {
             audioStream.removePusher(mEasyPusher);
             Log.i(TAG, "Stop AudioStream");
+            audioStream.setMuxer(null);
         }
         if (mVC != null) {
             mVC.onVideoStop();

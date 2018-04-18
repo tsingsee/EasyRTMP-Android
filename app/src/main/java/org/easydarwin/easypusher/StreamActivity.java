@@ -223,6 +223,8 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
 
                 textRecordTick.setVisibility(View.GONE);
                 textRecordTick.removeCallbacks(mRecordTickRunnable);
+                ImageButton ib = findViewById(R.id.btn_record);
+                ib.setImageResource(R.drawable.ic_action_record);
             }
         });
     }
