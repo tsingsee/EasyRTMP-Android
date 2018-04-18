@@ -69,7 +69,7 @@ public class MediaStream {
     private static final int SWITCH_CAMERA = 11;
     private final boolean enanleVideo;
     Pusher mEasyPusher;
-    static final String TAG = "EasyPusher";
+    static final String TAG = "MediaStream";
     int width = 640, height = 480;
     int framerate, bitrate;
     int mCameraId = Camera.CameraInfo.CAMERA_FACING_BACK;
