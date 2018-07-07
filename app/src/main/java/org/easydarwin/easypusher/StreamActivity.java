@@ -36,6 +36,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -72,8 +73,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
 
     //默认分辨率
     int width = 640, height = 480;
-    Button btnSwitch;
-    Button btnSetting;
+
     TextView txtStreamAddress;
     ImageButton btnSwitchCemera;
     Spinner spnResolution;
@@ -126,10 +126,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
         streamStat = (TextView) findViewById(R.id.stream_stat);
         streamStat.setText(null);
         txtStatus = (TextView) findViewById(R.id.txt_stream_status);
-        btnSwitch = (Button) findViewById(R.id.btn_switch);
-        btnSwitch.setOnClickListener(this);
-        btnSetting = (Button) findViewById(R.id.btn_setting);
-        btnSetting.setOnClickListener(this);
+
         btnSwitchCemera = (ImageButton) findViewById(R.id.btn_switchCamera);
         btnSwitchCemera.setOnClickListener(this);
         txtStreamAddress = (TextView) findViewById(R.id.txt_stream_address);
@@ -140,14 +137,14 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
         surfaceView.setOnClickListener(this);
 
 
-        Button pushScreen = (Button) findViewById(R.id.push_screen);
+        View pushScreen = findViewById(R.id.push_screen_container);
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
             pushScreen.setVisibility(View.GONE);
         }
 
-        Button button = (Button) findViewById(R.id.push_screen);
+        ImageView push_screen = findViewById(R.id.streaming_activity_push_screen);
         if (RecordService.mEasyPusher != null) {
-            button.setText("停止推送屏幕");
+            push_screen.setImageResource(R.drawable.push_screen_click);
             TextView viewById = (TextView) findViewById(R.id.push_screen_url);
             viewById.setText(EasyApplication.getEasyApplication().getUrl() + "_s");
         }
@@ -211,6 +208,10 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
 
                 textRecordTick.removeCallbacks(mRecordTickRunnable);
                 textRecordTick.post(mRecordTickRunnable);
+
+
+                ImageView ib = findViewById(R.id.streaming_activity_record);
+                ib.setImageResource(R.drawable.record_pressed);
             }
         });
     }
@@ -223,8 +224,8 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
 
                 textRecordTick.setVisibility(View.GONE);
                 textRecordTick.removeCallbacks(mRecordTickRunnable);
-                ImageButton ib = findViewById(R.id.btn_record);
-                ib.setImageResource(R.drawable.ic_action_record);
+                ImageView ib = findViewById(R.id.streaming_activity_record);
+                ib.setImageResource(R.drawable.record);
             }
         });
     }
@@ -257,14 +258,15 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
 
 
     private void startScreenPushIntent() {
+
         if (StreamActivity.mResultIntent != null && StreamActivity.mResultCode != 0) {
             Intent intent = new Intent(getApplicationContext(), RecordService.class);
             startService(intent);
-            TextView viewById = (TextView) findViewById(R.id.push_screen_url);
+            ImageView im = findViewById(R.id.streaming_activity_push_screen);
+            im.setImageResource(R.drawable.push_screen_click);
 
+            TextView viewById = (TextView) findViewById(R.id.push_screen_url);
             viewById.setText(EasyApplication.getEasyApplication().getUrl() + "_s");
-            Button button = (Button) findViewById(R.id.push_screen);
-            button.setText("停止推送屏幕");
         } else {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 MediaProjectionManager mMpMngr = (MediaProjectionManager) getApplicationContext().getSystemService(MEDIA_PROJECTION_SERVICE);
@@ -304,14 +306,16 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
             }).show();
             return;
         }
-        Button button = (Button) findViewById(R.id.push_screen);
+
         if (RecordService.mEasyPusher != null) {
             Intent intent = new Intent(getApplicationContext(), RecordService.class);
             stopService(intent);
 
             TextView viewById = (TextView) findViewById(R.id.push_screen_url);
-            viewById.setText(null);
-            button.setText("推送屏幕");
+            viewById.setText(EasyApplication.getEasyApplication().getUrl() + "_s");
+
+            ImageView im = findViewById(R.id.streaming_activity_push_screen);
+            im.setImageResource(R.drawable.push_screen);
         } else {
             startScreenPushIntent();
         }
@@ -387,7 +391,6 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
 
         if (mMediaStream.isStreaming()) {
             sendMessage("推流中");
-            btnSwitch.setText("停止");
             txtStreamAddress.setText(EasyApplication.getEasyApplication().getUrl());
         }
     }
@@ -415,64 +418,6 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
-            case R.id.push_screen: {
-                startScreenPushIntent();
-            }
-            break;
-            case R.id.btn_switch:
-                if (!mMediaStream.isStreaming()) {
-                    String url = EasyApplication.getEasyApplication().getUrl();
-                    mMediaStream.startStream(url, new InitCallback() {
-                        @Override
-                        public void onCallback(int code) {
-                            switch (code) {
-                                case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_INVALID_KEY:
-                                    sendMessage("无效Key");
-                                    break;
-                                case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_SUCCESS:
-                                    sendMessage("激活成功");
-                                    break;
-                                case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_CONNECTING:
-                                    sendMessage("连接中");
-                                    break;
-                                case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_CONNECTED:
-                                    sendMessage("连接成功");
-                                    break;
-                                case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_CONNECT_FAILED:
-                                    sendMessage("连接失败");
-                                    break;
-                                case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_CONNECT_ABORT:
-                                    sendMessage("连接异常中断");
-                                    break;
-                                case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_PUSHING:
-                                    sendMessage("推流中");
-                                    break;
-                                case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_DISCONNECTED:
-                                    sendMessage("断开连接");
-                                    break;
-                                case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_PLATFORM_ERR:
-                                    sendMessage("平台不匹配");
-                                    break;
-                                case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_COMPANY_ID_LEN_ERR:
-                                    sendMessage("断授权使用商不匹配");
-                                    break;
-                                case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_PROCESS_NAME_LEN_ERR:
-                                    sendMessage("进程名称长度不匹配");
-                                    break;
-                            }
-                        }
-                    });
-                    btnSwitch.setText("停止");
-                    txtStreamAddress.setText(url);
-                } else {
-                    mMediaStream.stopStream();
-                    btnSwitch.setText("开始");
-                    sendMessage("断开连接");
-                }
-                break;
-            case R.id.btn_setting:
-                startActivity(new Intent(this, SettingActivity.class));
-                break;
             case R.id.sv_surfaceview:
                 try {
                     mMediaStream.getCamera().autoFocus(null);
@@ -590,7 +535,6 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
 
             if (ms.isStreaming()) {
                 String url = EasyApplication.getEasyApplication().getUrl();
-                btnSwitch.setText("停止");
                 txtStreamAddress.setText(url);
                 sendMessage("推流中");
             }
@@ -657,14 +601,14 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
             ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_STORAGE_PERMISSION);
             return;
         }
-        ImageButton ib = (ImageButton) view;
+        ImageView ib = findViewById(R.id.streaming_activity_record);
         if (mMediaStream != null) {
             if (mMediaStream.isRecording()) {
                 mMediaStream.stopRecord();
-                ib.setImageResource(R.drawable.ic_action_record);
+                ib.setImageResource(R.drawable.record_pressed);
             } else {
                 mMediaStream.startRecord();
-                ib.setImageResource(R.drawable.ic_action_recording);
+                ib.setImageResource(R.drawable.record);
             }
         }
     }
@@ -688,5 +632,62 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         }
 //        if (mMediaStream != null) mMediaStream.setDgree(getDgree());
+    }
+
+    public void onStartOrStopPush(View view) {
+        ImageView ib = findViewById(R.id.streaming_activity_push);
+        if (!mMediaStream.isStreaming()) {
+            String url = EasyApplication.getEasyApplication().getUrl();
+            mMediaStream.startStream(url, new InitCallback() {
+                @Override
+                public void onCallback(int code) {
+                    switch (code) {
+                        case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_INVALID_KEY:
+                            sendMessage("无效Key");
+                            break;
+                        case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_SUCCESS:
+                            sendMessage("激活成功");
+                            break;
+                        case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_CONNECTING:
+                            sendMessage("连接中");
+                            break;
+                        case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_CONNECTED:
+                            sendMessage("连接成功");
+                            break;
+                        case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_CONNECT_FAILED:
+                            sendMessage("连接失败");
+                            break;
+                        case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_CONNECT_ABORT:
+                            sendMessage("连接异常中断");
+                            break;
+                        case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_PUSHING:
+                            sendMessage("推流中");
+                            break;
+                        case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_DISCONNECTED:
+                            sendMessage("断开连接");
+                            break;
+                        case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_PLATFORM_ERR:
+                            sendMessage("平台不匹配");
+                            break;
+                        case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_COMPANY_ID_LEN_ERR:
+                            sendMessage("断授权使用商不匹配");
+                            break;
+                        case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_PROCESS_NAME_LEN_ERR:
+                            sendMessage("进程名称长度不匹配");
+                            break;
+                    }
+                }
+            });
+            ib.setImageResource(R.drawable.start_push_pressed);
+            txtStreamAddress.setText(url);
+        } else {
+            mMediaStream.stopStream();
+            ib.setImageResource(R.drawable.start_push);
+            sendMessage("断开连接");
+        }
+    }
+
+    public void onSetting(View view) {
+        startActivity(new Intent(this, SettingActivity.class));
     }
 }

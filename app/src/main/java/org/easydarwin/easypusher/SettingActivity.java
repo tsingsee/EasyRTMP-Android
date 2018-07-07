@@ -35,7 +35,8 @@ public class SettingActivity extends AppCompatActivity {
 
     public static final int REQUEST_OVERLAY_PERMISSION = 1004;
     public static final String KEY_ENABLE_BACKGROUND_CAMERA = "key_enable_background_camera";
-
+    private static final int REQUEST_SCAN_TEXT_URL = 1003;
+    EditText rtmpUrl;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -44,7 +45,7 @@ public class SettingActivity extends AppCompatActivity {
         final EditText txtPort = (EditText) findViewById(R.id.edt_server_port);
         final EditText txtId = (EditText) findViewById(R.id.edt_stream_id);
         final View rtspGroup = findViewById(R.id.rtsp_group);
-        final EditText rtmpUrl = (EditText) findViewById(R.id.rtmp_url);
+        rtmpUrl = (EditText) findViewById(R.id.rtmp_url);
         if (BuildConfig.FLAVOR.equals("rtmp")) {
             rtspGroup.setVisibility(View.GONE);
             rtmpUrl.setVisibility(View.VISIBLE);
@@ -184,6 +185,11 @@ public class SettingActivity extends AppCompatActivity {
                     backgroundPushing.setChecked(false);
                 }
             }
+        }else if (requestCode == REQUEST_SCAN_TEXT_URL){
+            if (resultCode == RESULT_OK){
+                String url = data.getStringExtra("text");
+                rtmpUrl.setText(url);
+            }
         }
     }
 
@@ -199,4 +205,11 @@ public class SettingActivity extends AppCompatActivity {
             }
         }).show();
     }
+
+    public void onScanQRCode(View view) {
+        Intent intent = new Intent(this, ScanQRActivity.class);
+        startActivityForResult(intent, REQUEST_SCAN_TEXT_URL);
+    }
+
+
 }

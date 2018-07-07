@@ -71,16 +71,7 @@
             android:textAlignment="@id/txt_res"
             android:onClick="onSwitchOrientation"
             android:layout_height="wrap_content" />
-        <ImageButton
-            android:layout_width="wrap_content"
-            android:src="@drawable/ic_action_record"
-            style="@style/Base.Widget.AppCompat.ActionButton"
-            android:id="@+id/btn_record"
-            android:layout_gravity="end"
-            android:layout_marginTop="8dp"
-            android:textAlignment="@id/txt_res"
-            android:onClick="onRecord"
-            android:layout_height="wrap_content" />
+
         <ImageButton
             android:layout_width="wrap_content"
             android:src="@drawable/ic_action_switch_camera"
@@ -102,58 +93,97 @@
             android:onClick="onAbut"
             android:layout_height="wrap_content" />
     </LinearLayout>
+
     <LinearLayout
-        android:layout_width="match_parent"
         android:id="@+id/option_bar_container"
-        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#88ffffff"
         android:layout_alignParentBottom="true"
-        android:layout_height="wrap_content">
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:orientation="horizontal">
 
         <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-            <Button
-                android:id="@+id/btn_switch"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentBottom="true"
-                android:text="推送"
-                android:background="@drawable/button_selector"
-                android:textColor="#ffffff" />
-            <Button
-                android:id="@+id/push_screen"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="5dp"
-                android:layout_alignParentBottom="true"
-                android:onClick="onPushScreen"
-                android:text="推送屏幕"
-                android:background="@drawable/button_selector"
-                android:textColor="#ffffff" />
-            <Button
-                android:id="@+id/btn_setting"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_toRightOf="@+id/btn_switch"
-                android:layout_alignParentBottom="true"
-                android:layout_marginLeft="5dp"
-                android:background="@drawable/button_selector"
-                android:text="设置"
-                android:visibility="visible"
-                android:textColor="#ffffff" />
-            <Button
-                android:id="@+id/btn_audio"
-                android:visibility="gone"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_toRightOf="@+id/btn_record"
-                android:layout_alignParentBottom="true"
-                android:layout_marginLeft="5dp"
-                android:background="@drawable/button_selector"
-                android:text="静音"
-                android:textColor="#ffffff" />
-        </LinearLayout>
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center_horizontal"
+            android:onClick="onStartOrStopPush"
+            android:orientation="vertical">
 
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:id="@+id/streaming_activity_push"
+                android:src="@drawable/start_push" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#fff"
+                android:text="推送" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center_horizontal"
+            android:id="@+id/push_screen_container"
+            android:onClick="onPushScreen"
+            android:orientation="vertical">
+
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:id="@+id/streaming_activity_push_screen"
+                android:src="@drawable/push_screen" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#fff"
+                android:text="推送屏幕" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center_horizontal"
+            android:onClick="onRecord"
+            android:orientation="vertical">
+
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:id="@+id/streaming_activity_record"
+                android:src="@drawable/record" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#fff"
+                android:text="录像" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center_horizontal"
+            android:onClick="onSetting"
+            android:orientation="vertical">
+
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/settings" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#fff"
+                android:text="设置" />
+        </LinearLayout>
     </LinearLayout>
     <TextView
         android:id="@+id/txt_stream_address"

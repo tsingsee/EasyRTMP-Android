@@ -28,15 +28,15 @@
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter></activity>
+            </intent-filter>
+        </activity>
         <activity
             android:name=".SettingActivity"
-            android:screenOrientation="portrait"></activity>
+            android:screenOrientation="portrait" />
         <activity
             android:name=".StreamActivity"
             android:launchMode="singleInstance"
-            android:screenOrientation="portrait">
-        </activity>
+            android:screenOrientation="portrait"></activity>
 
         <service
             android:name=".RecordService"
@@ -46,9 +46,10 @@
             android:enabled="true" />
 
         <activity
-            android:name="org.easydarwin.easypusher.MediaFilesActivity"
+            android:name=".MediaFilesActivity"
             android:label="文件夹" />
-        <activity android:name=".AboutActivity"></activity>
+        <activity android:name=".AboutActivity" />
+        <activity android:name=".ScanQRActivity"></activity>
     </application>
 
 </manifest>
