@@ -122,16 +122,16 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
 
 
     private void goonWithPermissionGranted() {
-        spnResolution = (Spinner) findViewById(R.id.spn_resolution);
-        streamStat = (TextView) findViewById(R.id.stream_stat);
+        spnResolution = findViewById(R.id.spn_resolution);
+        streamStat = findViewById(R.id.stream_stat);
         streamStat.setText(null);
-        txtStatus = (TextView) findViewById(R.id.txt_stream_status);
+        txtStatus = findViewById(R.id.txt_stream_status);
 
-        btnSwitchCemera = (ImageButton) findViewById(R.id.btn_switchCamera);
+        btnSwitchCemera = findViewById(R.id.btn_switchCamera);
         btnSwitchCemera.setOnClickListener(this);
-        txtStreamAddress = (TextView) findViewById(R.id.txt_stream_address);
-        textRecordTick = (TextView) findViewById(R.id.tv_start_record);
-        final TextureView surfaceView = (TextureView) findViewById(R.id.sv_surfaceview);
+        txtStreamAddress = findViewById(R.id.txt_stream_address);
+        textRecordTick = findViewById(R.id.tv_start_record);
+        final TextureView surfaceView = findViewById(R.id.sv_surfaceview);
         surfaceView.setSurfaceTextureListener(this);
 
         surfaceView.setOnClickListener(this);
@@ -145,7 +145,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
         ImageView push_screen = findViewById(R.id.streaming_activity_push_screen);
         if (RecordService.mEasyPusher != null) {
             push_screen.setImageResource(R.drawable.push_screen_click);
-            TextView viewById = (TextView) findViewById(R.id.push_screen_url);
+            TextView viewById = findViewById(R.id.push_screen_url);
             viewById.setText(EasyApplication.getEasyApplication().getUrl() + "_s");
         }
 
@@ -265,7 +265,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
             ImageView im = findViewById(R.id.streaming_activity_push_screen);
             im.setImageResource(R.drawable.push_screen_click);
 
-            TextView viewById = (TextView) findViewById(R.id.push_screen_url);
+            TextView viewById = findViewById(R.id.push_screen_url);
             viewById.setText(EasyApplication.getEasyApplication().getUrl() + "_s");
         } else {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -311,7 +311,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
             Intent intent = new Intent(getApplicationContext(), RecordService.class);
             stopService(intent);
 
-            TextView viewById = (TextView) findViewById(R.id.push_screen_url);
+            TextView viewById = findViewById(R.id.push_screen_url);
             viewById.setText(EasyApplication.getEasyApplication().getUrl() + "_s");
 
             ImageView im = findViewById(R.id.streaming_activity_push_screen);
@@ -591,9 +591,10 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
     @Override
     protected void onResume() {
         super.onResume();
-        if (!mNeedGrantedPermission) {
+        if (!mNeedGrantedPermission){
             goonWithPermissionGranted();
         }
+
     }
 
     public void onRecord(View view) {

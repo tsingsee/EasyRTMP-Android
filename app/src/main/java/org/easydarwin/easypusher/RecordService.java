@@ -330,6 +330,8 @@ public class RecordService extends Service {
                         }
 
                     }
+                }catch (Throwable e){
+                    e.printStackTrace();
                 }finally {
                     audioStream.removePusher(mEasyPusher);
                 }
@@ -401,11 +403,13 @@ public class RecordService extends Service {
     private void release() {
 
         Log.i(TAG, " release() ");
-        if (mMediaCodec != null) {
-            mMediaCodec.stop();
-            mMediaCodec.release();
-            mMediaCodec = null;
-        }
+        try {
+            if (mMediaCodec != null) {
+                mMediaCodec.stop();
+                mMediaCodec.release();
+                mMediaCodec = null;
+            }
+        }catch (Throwable e){}
         if (mSurface != null){
             mSurface.release();
         }
