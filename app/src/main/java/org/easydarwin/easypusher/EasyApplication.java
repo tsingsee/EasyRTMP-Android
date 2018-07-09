@@ -3,7 +3,6 @@ package org.easydarwin.easypusher;
 import android.app.Application;
 import android.content.SharedPreferences;
 import android.content.res.AssetManager;
-import android.hardware.Camera;
 import android.preference.PreferenceManager;
 
 import com.squareup.otto.Bus;
@@ -14,15 +13,11 @@ import com.tencent.bugly.crashreport.CrashReport;
 import org.easydarwin.bus.StartRecord;
 import org.easydarwin.bus.StopRecord;
 import org.easydarwin.config.Config;
-import org.easydarwin.push.MediaStream;
-import org.easydarwin.push.MuxerModule;
-import org.easydarwin.util.Util;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.List;
 
 public class EasyApplication extends Application {
 
@@ -38,7 +33,7 @@ public class EasyApplication extends Application {
     public void onCreate() {
         super.onCreate();
         mApplication = this;
-        if (BuildConfig.DEBUG){
+        if (!BuildConfig.DEBUG){
             CrashReport.initCrashReport(getApplicationContext(), "678a09e90e", false);
         }
         // for compatibility

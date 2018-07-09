@@ -16,7 +16,7 @@ android {
         }
         minSdkVersion 16
         targetSdkVersion 26
-        versionCode 30
+        versionCode 31
         versionName "1.3.18.0709"
         testInstrumentationRunner 'android.support.test.runner.AndroidJUnitRunner'
         flavorDimensions "versionCode"

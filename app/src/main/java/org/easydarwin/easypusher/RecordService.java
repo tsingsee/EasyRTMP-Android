@@ -3,12 +3,7 @@ package org.easydarwin.easypusher;
 import android.annotation.TargetApi;
 import android.app.Service;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.graphics.BitmapFactory;
-import android.graphics.Color;
-import android.graphics.drawable.Drawable;
-import android.graphics.drawable.GradientDrawable;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
 import android.media.MediaCodec;
@@ -16,15 +11,13 @@ import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.os.IBinder;
-import android.os.Vibrator;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.support.annotation.Nullable;
-import android.support.v7.app.AlertDialog;
+import android.support.annotation.RequiresApi;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -35,17 +28,14 @@ import android.view.Surface;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.WindowManager;
-import android.widget.ImageButton;
-import android.widget.Toast;
+
+import com.tencent.bugly.crashreport.CrashReport;
 
 import org.easydarwin.audio.AudioStream;
 import org.easydarwin.easyrtmp.push.EasyRTMP;
 import org.easydarwin.push.Pusher;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
-
-import static org.easydarwin.easypusher.SettingActivity.REQUEST_OVERLAY_PERMISSION;
 
 
 public class RecordService extends Service {
@@ -84,14 +74,20 @@ public class RecordService extends Service {
         return null;
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
     public void onCreate() {
         super.onCreate();
         mMpmngr = (MediaProjectionManager) getApplicationContext().getSystemService(MEDIA_PROJECTION_SERVICE);
         createEnvironment();
-        configureMedia();
-        startPush();
+        try {
+            configureMedia();
+            startPush();
 
+        }catch (Throwable e){
+            e.printStackTrace();
+            CrashReport.postCatchedException(e);
+        }
 
         mWindowManager = (WindowManager) getApplicationContext().getSystemService(Context.WINDOW_SERVICE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -218,12 +214,14 @@ public class RecordService extends Service {
         mediaFormat.setInteger(MediaFormat.KEY_REPEAT_PREVIOUS_FRAME_AFTER, 1000000 / 25);
         try {
             mMediaCodec = MediaCodec.createEncoderByType("video/avc");
-        } catch (IOException e) {
+            mMediaCodec.configure(mediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+            mSurface = mMediaCodec.createInputSurface();
+            mMediaCodec.start();
+        } catch (Throwable e) {
             e.printStackTrace();
+            if (mMediaCodec != null) mMediaCodec.release();
+            throw new IllegalStateException(e);
         }
-        mMediaCodec.configure(mediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
-        mSurface = mMediaCodec.createInputSurface();
-        mMediaCodec.start();
     }
 
     private void createEnvironment() {
@@ -353,6 +351,7 @@ public class RecordService extends Service {
                 e.printStackTrace();
             }
         }
+        if (mEasyPusher == null) return;
         mEasyPusher.stop();
         mEasyPusher = null;
     }
