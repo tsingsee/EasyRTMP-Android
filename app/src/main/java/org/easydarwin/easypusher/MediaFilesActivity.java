@@ -45,9 +45,6 @@ public class MediaFilesActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mDataBinding = DataBindingUtil.setContentView(this, R.layout.activity_media_files);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         mDataBinding.viewPager.setAdapter(new FragmentPagerAdapter(getSupportFragmentManager()) {
             @Override
             public int getCount() {
@@ -208,7 +205,7 @@ public class MediaFilesActivity extends AppCompatActivity {
             mBinding.recycler.setAdapter(new RecyclerView.Adapter() {
                 @Override
                 public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-                    ImagePickerItemBinding binding = DataBindingUtil.inflate(getLayoutInflater(null), R.layout.image_picker_item, parent, false);
+                    ImagePickerItemBinding binding = DataBindingUtil.inflate(LayoutInflater.from(getContext()), R.layout.image_picker_item, parent, false);
                     return new ImageItemHolder(binding);
                 }
 

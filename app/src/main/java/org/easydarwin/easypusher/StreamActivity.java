@@ -75,7 +75,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
     int width = 640, height = 480;
 
     TextView txtStreamAddress;
-    ImageButton btnSwitchCemera;
+    ImageView btnSwitchCemera;
     Spinner spnResolution;
     List<String> listResolution = new ArrayList<String>();
     MediaStream mMediaStream;
@@ -192,7 +192,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
             textRecordTick.removeCallbacks(mRecordTickRunnable);
             textRecordTick.post(mRecordTickRunnable);
         } else {
-            textRecordTick.setVisibility(View.GONE);
+            textRecordTick.setVisibility(View.INVISIBLE);
             textRecordTick.removeCallbacks(mRecordTickRunnable);
         }
 
@@ -222,7 +222,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
             @Override
             public void run() {
 
-                textRecordTick.setVisibility(View.GONE);
+                textRecordTick.setVisibility(View.INVISIBLE);
                 textRecordTick.removeCallbacks(mRecordTickRunnable);
                 ImageView ib = findViewById(R.id.streaming_activity_record);
                 ib.setImageResource(R.drawable.record);

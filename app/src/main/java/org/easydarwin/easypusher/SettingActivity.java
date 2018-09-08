@@ -15,6 +15,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
@@ -189,6 +190,8 @@ public class SettingActivity extends AppCompatActivity {
             if (resultCode == RESULT_OK){
                 String url = data.getStringExtra("text");
                 rtmpUrl.setText(url);
+
+                EasyApplication.getEasyApplication().saveStringIntoPref(Config.SERVER_URL, url);
             }
         }
     }
@@ -209,6 +212,7 @@ public class SettingActivity extends AppCompatActivity {
     public void onScanQRCode(View view) {
         Intent intent = new Intent(this, ScanQRActivity.class);
         startActivityForResult(intent, REQUEST_SCAN_TEXT_URL);
+//        overridePendingTransition(R.anim.activity_open_enter,0);
     }
 
 

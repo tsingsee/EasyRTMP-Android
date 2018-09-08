@@ -249,7 +249,11 @@ public class MediaStream {
             parameters.setPreviewSize(width, height);
 //            parameters.setPreviewFpsRange(max[0], max[1]);
             parameters.setPreviewFrameRate(20);
-
+            List<String> supportedFocusModes = parameters.getSupportedFocusModes();
+            if (supportedFocusModes == null) supportedFocusModes = new ArrayList<>();
+            if (supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
+                parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
+            }
 //            int maxExposureCompensation = parameters.getMaxExposureCompensation();
 //            parameters.setExposureCompensation(3);
 //

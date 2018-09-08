@@ -2,13 +2,14 @@ package org.easydarwin.easypusher.views;
 
 import android.content.Context;
 import android.os.Build;
+import android.support.v7.widget.AppCompatImageView;
 import android.util.AttributeSet;
 import android.widget.ImageView;
 
 /**
  * Created by John on 2014/11/11.
  */
-public class SquareImageView extends ImageView {
+public class SquareImageView extends AppCompatImageView {
     public SquareImageView(Context context) {
         super(context);
     }

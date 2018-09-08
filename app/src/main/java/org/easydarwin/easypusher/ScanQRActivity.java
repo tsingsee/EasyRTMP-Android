@@ -1,37 +1,98 @@
 package org.easydarwin.easypusher;
 
+import android.content.DialogInterface;
 import android.content.Intent;
-import android.graphics.PointF;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
+import android.text.TextUtils;
+import android.view.View;
+import android.widget.Toast;
 
-import com.dlazaro66.qrcodereaderview.QRCodeReaderView;
+import com.budiyev.android.codescanner.CodeScanner;
+import com.budiyev.android.codescanner.CodeScannerView;
+import com.budiyev.android.codescanner.DecodeCallback;
+import com.budiyev.android.codescanner.ScanMode;
+import com.google.zxing.Result;
 
-public class ScanQRActivity extends AppCompatActivity  implements QRCodeReaderView.OnQRCodeReadListener {
+public class ScanQRActivity extends AppCompatActivity  {
 
-    private QRCodeReaderView qrCodeReaderView;
+
+
+    private CodeScanner mCodeScanner;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_scan_qr);
-        qrCodeReaderView = findViewById(R.id.qrdecoderview);
+        CodeScannerView scannerView = findViewById(R.id.scanner_view);
+        mCodeScanner = new CodeScanner(this, scannerView);
+        mCodeScanner.setScanMode(ScanMode.SINGLE);
+        mCodeScanner.setAutoFocusEnabled(true);
+        mCodeScanner.setDecodeCallback(new DecodeCallback() {
+            @Override
+            public void onDecoded(@NonNull final Result result) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(ScanQRActivity.this, result.getText(), Toast.LENGTH_SHORT).show();
+
+
+                        String orignalText = result.getText();
+                        if (!TextUtils.isEmpty(orignalText)){
+                            final String text = orignalText.trim();
+                            if (text.toLowerCase().startsWith("rtmp://")){
+                                new AlertDialog.Builder(ScanQRActivity.this).setTitle("扫描到了推送地址").setMessage(text).setPositiveButton("使用该地址推送", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        Intent intent = new Intent();
+                                        intent.putExtra("text", text);
+                                        setResult(RESULT_OK, intent);
+                                        finish();
+//                                        overridePendingTransition(0,R.anim.activity_close_exit);
+                                    }
+                                }).setNegativeButton("重新扫描", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        mCodeScanner.startPreview();
+                                    }
+                                }).show();
+                            }
+                        }
+                    }
+                });
+            }
+        });
+        scannerView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mCodeScanner.startPreview();
+            }
+        });
     }
+
     @Override
     protected void onResume() {
         super.onResume();
-        qrCodeReaderView.startCamera();
+        mCodeScanner.startPreview();
     }
 
     @Override
     protected void onPause() {
+        mCodeScanner.releaseResources();
         super.onPause();
-        qrCodeReaderView.stopCamera();
+    }
+
+    public void onClose(View view) {
+        finish();
+//        overridePendingTransition(0,R.anim.activity_close_exit);
     }
 
     @Override
-    public void onQRCodeRead(String text, PointF[] points) {
-        Intent intent = new Intent();
-        intent.putExtra("text", text);
-        setResult(RESULT_OK, intent);
+    public void onBackPressed() {
+        super.onBackPressed();
+
+//        overridePendingTransition(0,R.anim.activity_close_exit);
     }
 }
