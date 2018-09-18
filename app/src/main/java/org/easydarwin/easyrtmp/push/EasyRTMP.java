@@ -57,7 +57,7 @@ public class EasyRTMP implements Pusher {
      * @param url       RTMP服务器地址
      * @param key        授权码
      */
-    public native long init(String url, String key, Context context, OnInitPusherCallback callback, int fps);
+    public native long init(String url, String key, Context context, OnInitPusherCallback callback, int fps, int audiosamplerate, int audiochannelcount);
 
     /**
      * 推送编码后的H264数据
@@ -105,7 +105,7 @@ public class EasyRTMP implements Pusher {
                 }
             }
         },
-        fps);
+        fps, 8000, 1);
         Log.d(TAG, "startpush end");
     }
 
