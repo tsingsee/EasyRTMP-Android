@@ -9,7 +9,7 @@ import java.io.IOException;
  */
 
 public interface VideoConsumer {
-    public void onVideoStart(int width, int height) throws IOException;
+    public void onVideoStart(int width, int height) ;
 
     public int onVideo(byte []data, int format);
 

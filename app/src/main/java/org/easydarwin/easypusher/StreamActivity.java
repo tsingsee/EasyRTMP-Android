@@ -72,7 +72,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
     public static final int REQUEST_STORAGE_PERMISSION = 1004;
 
     //默认分辨率
-    int width = 640, height = 480;
+    int width = 1280, height = 720;
 
     TextView txtStreamAddress;
     ImageView btnSwitchCemera;

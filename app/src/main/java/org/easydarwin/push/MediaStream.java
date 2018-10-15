@@ -8,9 +8,7 @@ import android.hardware.Camera;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaCodecList;
-import android.media.MediaFormat;
 import android.os.Build;
-import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -19,7 +17,6 @@ import android.os.Process;
 import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.util.Log;
-import android.view.SurfaceHolder;
 
 import org.easydarwin.audio.AudioStream;
 import org.easydarwin.bus.SupportResolution;
@@ -27,12 +24,8 @@ import org.easydarwin.easypusher.BackgroundCameraService;
 import org.easydarwin.easypusher.BuildConfig;
 import org.easydarwin.easypusher.EasyApplication;
 import org.easydarwin.easyrtmp.push.EasyRTMP;
-import org.easydarwin.hw.EncoderDebugger;
-import org.easydarwin.hw.NV21Convertor;
 import org.easydarwin.muxer.EasyMuxer;
 import org.easydarwin.sw.JNIUtil;
-import org.easydarwin.sw.TxtOverlay;
-import org.easydarwin.sw.X264Encoder;
 import org.easydarwin.util.Util;
 
 import java.io.File;
@@ -42,21 +35,15 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.ref.WeakReference;
-import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.ArrayBlockingQueue;
 
 import dagger.Module;
 import dagger.Provides;
 
-import static android.graphics.ImageFormat.NV21;
-import static android.graphics.ImageFormat.YV12;
 import static android.media.MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420PackedPlanar;
 import static android.media.MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar;
 import static android.media.MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar;
@@ -70,7 +57,7 @@ public class MediaStream {
     private final boolean enanleVideo;
     Pusher mEasyPusher;
     static final String TAG = "MediaStream";
-    int width = 640, height = 480;
+    int width = 1280, height = 720;
     int framerate, bitrate;
     int mCameraId = Camera.CameraInfo.CAMERA_FACING_BACK;
     MediaCodec mMediaCodec;
@@ -82,13 +69,16 @@ public class MediaStream {
     private int mDgree;
     private Context mApplicationContext;
     private boolean mSWCodec;
-    private VideoConsumer mVC;
-    private TxtOverlay overlay;
+    private VideoConsumer mVC, mRecordVC;
     private EasyMuxer mMuxer;
     private final HandlerThread mCameraThread;
     private final Handler mCameraHandler;
     //    private int previewFormat;
     public static CodecInfo info = new CodecInfo();
+    private byte []i420_buffer;
+    private int frameWidth;
+    private int frameHeight;
+    private Camera.CameraInfo camInfo;
 
     public MediaStream(Context context, SurfaceTexture texture) {
         this(context, texture, true);
@@ -103,6 +93,7 @@ public class MediaStream {
                 try {
                     super.run();
                 } catch (Throwable e) {
+                    e.printStackTrace();
                     Intent intent = new Intent(mApplicationContext, BackgroundCameraService.class);
                     mApplicationContext.stopService(intent);
                 } finally {
@@ -129,22 +120,20 @@ public class MediaStream {
 
                 @Override
                 public void onPreviewFrame(byte[] data, Camera camera) {
-                    if (mDgree == 0) {
-                        Camera.CameraInfo camInfo = new Camera.CameraInfo();
-                        Camera.getCameraInfo(mCameraId, camInfo);
-                        int cameraRotationOffset = camInfo.orientation;
+                    if (data == null) return;
+                    int cameraRotationOffset = camInfo.orientation;
+//                    if (mCameraId == Camera.CameraInfo.CAMERA_FACING_FRONT)
+//                        cameraRotationOffset += 180;
 
-                        if (cameraRotationOffset % 180 != 0) {
-                            yuvRotate(data, 1, width, height, cameraRotationOffset);
-                        }
-                        save2file(data, String.format("/sdcard/yuv_%d_%d.yuv", height, width));
+                    if (i420_buffer == null || i420_buffer.length != data.length){
+                        i420_buffer = new byte[data.length];
                     }
-                    if (PreferenceManager.getDefaultSharedPreferences(mApplicationContext).getBoolean("key_enable_video_overlay", false)) {
-                        String txt = String.format("drawtext=fontfile=" + mApplicationContext.getFileStreamPath("SIMYOU.ttf") + ": text='%s%s':x=(w-text_w)/2:y=H-60 :fontcolor=white :box=1:boxcolor=0x00000000@0.3", "EasyPusher", new SimpleDateFormat("yyyy-MM-ddHHmmss").format(new Date()));
-                        txt = "EasyRTMP " + new SimpleDateFormat("yy-MM-dd HH:mm:ss SSS").format(new Date());
-                        overlay.overlay(data, txt);
+                    JNIUtil.ConvertToI420(data, i420_buffer, width, height, 0, 0,  width, height, cameraRotationOffset%360, 2);
+                    System.arraycopy(i420_buffer, 0, data, 0, data.length);
+                    if (mRecordVC != null) {
+                        mRecordVC.onVideo(i420_buffer, 0);
                     }
-                    mVC.onVideo(data, NV21);
+                    mVC.onVideo(data, 0);
                     mCamera.addCallbackBuffer(data);
                 }
 
@@ -227,7 +216,7 @@ public class MediaStream {
 
             Camera.Parameters parameters = mCamera.getParameters();
             int[] max = determineMaximumSupportedFramerate(parameters);
-            Camera.CameraInfo camInfo = new Camera.CameraInfo();
+            camInfo = new Camera.CameraInfo();
             Camera.getCameraInfo(mCameraId, camInfo);
             int cameraRotationOffset = camInfo.orientation;
             if (mCameraId == Camera.CameraInfo.CAMERA_FACING_FRONT)
@@ -237,13 +226,14 @@ public class MediaStream {
             parameters.setRecordingHint(true);
 
 
+
             ArrayList<CodecInfo> infos = listEncoders("video/avc");
-            if (infos.isEmpty()) mSWCodec = true;
-            if (mSWCodec) {
-            } else {
+            if (!infos.isEmpty()) {
                 CodecInfo ci = infos.get(0);
                 info.mName = ci.mName;
                 info.mColorFormat = ci.mColorFormat;
+            }else {
+                mSWCodec = true;
             }
 //            List<Camera.Size> sizes = parameters.getSupportedPreviewSizes();
             parameters.setPreviewSize(width, height);
@@ -278,6 +268,7 @@ public class MediaStream {
             mCamera.setDisplayOrientation(displayRotation);
 
             Log.i(TAG, "setDisplayOrientation");
+
         } catch (Exception e) {
             StringWriter sw = new StringWriter();
             PrintWriter pw = new PrintWriter(sw);
@@ -332,13 +323,18 @@ public class MediaStream {
             });
             return;
         }
+        boolean rotate = false;
+        if (mCamera == null) {
+            return;
+        }
         long millis = PreferenceManager.getDefaultSharedPreferences(mApplicationContext).getInt("record_interval", 300000);
         mMuxer = new EasyMuxer(new File(recordPath, new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date())).toString(), millis);
-        if (mVC == null || audioStream == null) {
-            throw new IllegalStateException("you need to start preview before startRecord!");
+        mRecordVC = new RecordVideoConsumer(mApplicationContext, mMuxer);
+        mRecordVC.onVideoStart(frameWidth, frameHeight);
+        if (audioStream != null) {
+            audioStream.setMuxer(mMuxer);
         }
-        mVC.setMuxer(mMuxer);
-        audioStream.setMuxer(mMuxer);
+
     }
 
 
@@ -352,11 +348,12 @@ public class MediaStream {
             });
             return;
         }
-        if (mVC == null || audioStream == null) {
+        if (mRecordVC == null || audioStream == null) {
 //            nothing
         } else {
-            mVC.setMuxer(null);
             audioStream.setMuxer(null);
+            mRecordVC.onVideoStop();
+            mRecordVC = null;
         }
         if (mMuxer != null) mMuxer.release();
         mMuxer = null;
@@ -416,37 +413,23 @@ public class MediaStream {
                 Log.i(TAG, "auto foucus fail");
             }
 
-            boolean rotate = false;
-            if (mDgree == 0) {
-                Camera.CameraInfo camInfo = new Camera.CameraInfo();
-                Camera.getCameraInfo(mCameraId, camInfo);
-                int cameraRotationOffset = camInfo.orientation;
-                if (cameraRotationOffset == 90) {
-                    rotate = true;
-                } else if (cameraRotationOffset == 270) {
-                    rotate = true;
-                }
-            }
+            boolean frameRotate = false;
 
-            overlay = new TxtOverlay(mApplicationContext);
-            try {
-                if (mSWCodec) {
-                    mVC = new SWConsumer(mApplicationContext, mEasyPusher);
-                } else {
-                    mVC = new HWConsumer(mApplicationContext, mEasyPusher);
-                }
-                if (!rotate) {
-                    mVC.onVideoStart(previewSize.width, previewSize.height);
-                    overlay.init(previewSize.width, previewSize.height, mApplicationContext.getFileStreamPath("SIMYOU.ttf").getPath());
-                } else {
-                    mVC.onVideoStart(previewSize.height, previewSize.width);
-                    overlay.init(previewSize.height, previewSize.width, mApplicationContext.getFileStreamPath("SIMYOU.ttf").getPath());
-                }
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            } catch (IllegalArgumentException ex) {
-                ex.printStackTrace();
+            int cameraRotationOffset = camInfo.orientation;
+            if (mCameraId == Camera.CameraInfo.CAMERA_FACING_FRONT)
+                cameraRotationOffset += 180;
+
+            if (cameraRotationOffset % 180 != 0) {
+                frameRotate = true;
             }
+            frameWidth = frameRotate ? height:width;
+            frameHeight = frameRotate ? width:height;
+            if (mSWCodec) {
+                mVC = new ClippableVideoConsumer(mApplicationContext, new SWConsumer(mApplicationContext, mEasyPusher), frameWidth / 2, frameHeight / 2);
+            } else {
+                mVC = new ClippableVideoConsumer(mApplicationContext, new HWConsumer(mApplicationContext, mEasyPusher), frameWidth / 2, frameHeight / 2);
+            }
+            mVC.onVideoStart(frameWidth, frameHeight);
         }
         audioStream.addPusher(mEasyPusher);
     }
@@ -513,8 +496,9 @@ public class MediaStream {
 
             Log.i(TAG, "Stop VC");
         }
-        if (overlay != null)
-            overlay.release();
+        if (mRecordVC != null) {
+            mRecordVC.onVideoStop();
+        }
 
         if (mMuxer != null) {
             mMuxer.release();
