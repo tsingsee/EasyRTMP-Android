@@ -41,16 +41,12 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
-import dagger.Module;
-import dagger.Provides;
-
 import static android.media.MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420PackedPlanar;
 import static android.media.MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar;
 import static android.media.MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar;
 import static android.media.MediaCodecInfo.CodecCapabilities.COLOR_TI_FormatYUV420PackedSemiPlanar;
 import static org.easydarwin.easypusher.EasyApplication.BUS;
 
-@Module
 public class MediaStream {
     private static final boolean VERBOSE = BuildConfig.DEBUG;
     private static final int SWITCH_CAMERA = 11;
@@ -434,7 +430,7 @@ public class MediaStream {
         audioStream.addPusher(mEasyPusher);
     }
 
-    @Provides
+
     @Nullable
     public EasyMuxer getMuxer() {
         return mMuxer;
