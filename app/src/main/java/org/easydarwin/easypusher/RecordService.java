@@ -53,7 +53,7 @@ public class RecordService extends Service {
     private MediaCodec mMediaCodec;
 
     private WindowManager wm;
-    final AudioStream audioStream = AudioStream.getInstance();
+    AudioStream audioStream;
 
 
 
@@ -78,6 +78,7 @@ public class RecordService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        audioStream = AudioStream.getInstance(getApplicationContext());
         mMpmngr = (MediaProjectionManager) getApplicationContext().getSystemService(MEDIA_PROJECTION_SERVICE);
         createEnvironment();
         try {

@@ -1,5 +1,6 @@
 package org.easydarwin.audio;
 
+import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaCodec;
@@ -7,6 +8,7 @@ import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.media.MediaRecorder;
 import android.os.Process;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 import org.easydarwin.muxer.EasyMuxer;
@@ -21,6 +23,7 @@ import java.util.Set;
 
 public class AudioStream {
     private static AudioStream _this;
+    private final Context context;
     EasyMuxer muxer;
     private int samplingRate = 8000;
     private int bitRate = 16000;
@@ -58,7 +61,8 @@ public class AudioStream {
     private Thread mWriter;
     private MediaFormat newFormat;
 
-    public AudioStream() {
+    public AudioStream(Context context) {
+        this.context = context;
         int i = 0;
         for (; i < AUDIO_SAMPLING_RATES.length; i++) {
             if (AUDIO_SAMPLING_RATES[i] == samplingRate) {
@@ -86,6 +90,20 @@ public class AudioStream {
                 shouldStop = true;
         }
         if (shouldStop) stop();
+    }
+
+    public static synchronized AudioStream getInstance(Context context) {
+        if (_this == null) _this = new AudioStream(context);
+        return _this;
+    }
+
+
+    public synchronized void setMuxer(EasyMuxer muxer) {
+        if (muxer != null) {
+            if (newFormat != null)
+                muxer.addTrack(newFormat, false);
+        }
+        this.muxer = muxer;
     }
 
     /**
@@ -164,22 +182,10 @@ public class AudioStream {
                 }
             }
         }, "AACRecoder");
-        mThread.start();
-
-    }
-
-
-    public synchronized void setMuxer(EasyMuxer muxer) {
-        if (muxer != null) {
-            if (newFormat != null)
-                muxer.addTrack(newFormat, false);
+        if (PreferenceManager.getDefaultSharedPreferences(context).getBoolean("key-enable-audio",true)) {
+            mThread.start();
         }
-        this.muxer = muxer;
-    }
 
-    public static synchronized AudioStream getInstance() {
-        if (_this == null) _this = new AudioStream();
-        return _this;
     }
 
     private class WriterThread extends Thread {

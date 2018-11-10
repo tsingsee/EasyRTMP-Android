@@ -15,13 +15,11 @@ import android.os.HandlerThread;
 import android.os.Message;
 import android.os.Process;
 import android.preference.PreferenceManager;
-import android.support.annotation.Nullable;
 import android.util.Log;
 
 import org.easydarwin.audio.AudioStream;
 import org.easydarwin.bus.SupportResolution;
 import org.easydarwin.easypusher.BackgroundCameraService;
-import org.easydarwin.easypusher.BuildConfig;
 import org.easydarwin.easypusher.EasyApplication;
 import org.easydarwin.easyrtmp.push.EasyRTMP;
 import org.easydarwin.muxer.EasyMuxer;
@@ -29,8 +27,6 @@ import org.easydarwin.sw.JNIUtil;
 import org.easydarwin.util.Util;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -48,7 +44,6 @@ import static android.media.MediaCodecInfo.CodecCapabilities.COLOR_TI_FormatYUV4
 import static org.easydarwin.easypusher.EasyApplication.BUS;
 
 public class MediaStream {
-    private static final boolean VERBOSE = BuildConfig.DEBUG;
     private static final int SWITCH_CAMERA = 11;
     private final boolean enanleVideo;
     Pusher mEasyPusher;
@@ -60,7 +55,7 @@ public class MediaStream {
     WeakReference<SurfaceTexture> mSurfaceHolderRef;
     Camera mCamera;
     boolean pushStream = false;//是否要推送数据
-    final AudioStream audioStream = AudioStream.getInstance();
+    AudioStream audioStream ;
     private boolean isCameraBack = true;
     private int mDgree;
     private Context mApplicationContext;
@@ -76,12 +71,9 @@ public class MediaStream {
     private int frameHeight;
     private Camera.CameraInfo camInfo;
 
-    public MediaStream(Context context, SurfaceTexture texture) {
-        this(context, texture, true);
-    }
-
     public MediaStream(Context context, SurfaceTexture texture, boolean enableVideo) {
         mApplicationContext = context;
+        audioStream = AudioStream.getInstance(mApplicationContext);
         mSurfaceHolderRef = new WeakReference(texture);
         mEasyPusher = new EasyRTMP();
         mCameraThread = new HandlerThread("CAMERA") {
@@ -275,19 +267,6 @@ public class MediaStream {
         }
     }
 
-    private void save2file(byte[] data, String path) {
-        if (true) return;
-        try {
-            FileOutputStream fos = new FileOutputStream(path, true);
-            fos.write(data);
-            fos.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
     // 根据Unicode编码完美的判断中文汉字和符号
     private static boolean isChinese(char c) {
         Character.UnicodeBlock ub = Character.UnicodeBlock.of(c);
@@ -298,15 +277,6 @@ public class MediaStream {
             return true;
         }
         return false;
-    }
-
-    private int getTxtPixelLength(String txt, boolean zoomed) {
-        int length = 0;
-        int fontWidth = zoomed ? 16 : 8;
-        for (int i = 0; i < txt.length(); i++) {
-            length += isChinese(txt.charAt(i)) ? fontWidth * 2 : fontWidth;
-        }
-        return length;
     }
 
     public synchronized void startRecord() {
@@ -431,38 +401,8 @@ public class MediaStream {
     }
 
 
-    @Nullable
-    public EasyMuxer getMuxer() {
-        return mMuxer;
-    }
-
-
     Camera.PreviewCallback previewCallback;
 
-
-    /**
-     * 旋转YUV格式数据
-     *
-     * @param src    YUV数据
-     * @param format 0，420P；1，420SP
-     * @param width  宽度
-     * @param height 高度
-     * @param degree 旋转度数
-     */
-    private static void yuvRotate(byte[] src, int format, int width, int height, int degree) {
-        int offset = 0;
-        if (format == 0) {
-            JNIUtil.rotateMatrix(src, offset, width, height, degree);
-            offset += (width * height);
-            JNIUtil.rotateMatrix(src, offset, width / 2, height / 2, degree);
-            offset += width * height / 4;
-            JNIUtil.rotateMatrix(src, offset, width / 2, height / 2, degree);
-        } else if (format == 1) {
-            JNIUtil.rotateMatrix(src, offset, width, height, degree);
-            offset += width * height;
-            JNIUtil.rotateShortMatrix(src, offset, width / 2, height / 2, degree);
-        }
-    }
 
     /**
      * 停止预览

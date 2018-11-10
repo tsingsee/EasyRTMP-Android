@@ -9,23 +9,21 @@ package org.easydarwin.easypusher;
 
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
-import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
-import android.widget.TextView;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.Toast;
 
 import org.easydarwin.config.Config;
@@ -154,13 +152,48 @@ public class SettingActivity extends AppCompatActivity {
             }
         });
 
-        CheckBox only_push_audio = (CheckBox) findViewById(R.id.only_push_audio);
-        only_push_audio.setChecked(!PreferenceManager.getDefaultSharedPreferences(this).getBoolean(EasyApplication.KEY_ENABLE_VIDEO, true));
 
-        only_push_audio.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+        RadioGroup push_content = findViewById(R.id.push_content);
+        boolean videoEnable = PreferenceManager.getDefaultSharedPreferences(SettingActivity.this)
+                .getBoolean(EasyApplication.KEY_ENABLE_VIDEO, true);
+        if (videoEnable){
+            boolean audioEnable = PreferenceManager.getDefaultSharedPreferences(SettingActivity.this)
+                    .getBoolean(EasyApplication.KEY_ENABLE_AUDIO, true);
+
+            if (audioEnable){
+                RadioButton push_av = findViewById(R.id.push_av);
+                push_av.setChecked(true);
+            }else{
+                RadioButton push_v = findViewById(R.id.push_v);
+                push_v.setChecked(true);
+            }
+        }else{
+            RadioButton push_a = findViewById(R.id.push_a);
+            push_a.setChecked(true);
+        }
+        push_content.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                PreferenceManager.getDefaultSharedPreferences(SettingActivity.this).edit().putBoolean(EasyApplication.KEY_ENABLE_VIDEO, !isChecked).apply();
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                if (checkedId == R.id.push_av){
+                    PreferenceManager.getDefaultSharedPreferences(SettingActivity.this)
+                            .edit()
+                            .putBoolean(EasyApplication.KEY_ENABLE_VIDEO, true)
+                            .putBoolean(EasyApplication.KEY_ENABLE_AUDIO, true)
+                            .apply();
+                }else if (checkedId == R.id.push_a){
+                    PreferenceManager.getDefaultSharedPreferences(SettingActivity.this)
+                            .edit()
+                            .putBoolean(EasyApplication.KEY_ENABLE_VIDEO, false)
+                            .putBoolean(EasyApplication.KEY_ENABLE_AUDIO, true)
+                            .apply();
+
+                }else if (checkedId == R.id.push_v){
+                    PreferenceManager.getDefaultSharedPreferences(SettingActivity.this)
+                            .edit()
+                            .putBoolean(EasyApplication.KEY_ENABLE_VIDEO, true)
+                            .putBoolean(EasyApplication.KEY_ENABLE_AUDIO, false)
+                            .apply();
+                }
             }
         });
     }
