@@ -1,8 +1,11 @@
 package org.easydarwin.easypusher;
 
 import android.app.Application;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.SharedPreferences;
 import android.content.res.AssetManager;
+import android.os.Build;
 import android.preference.PreferenceManager;
 
 import com.squareup.otto.Bus;
@@ -23,6 +26,7 @@ public class EasyApplication extends Application {
 
     public static final String KEY_ENABLE_VIDEO = "key-enable-video";
     public static final String KEY_ENABLE_AUDIO = "key-enable-audio";
+    public static final String CHANNEL_CAMERA = "camera";
 
     private static EasyApplication mApplication;
 
@@ -60,6 +64,20 @@ public class EasyApplication extends Application {
         }
 
         BUS.register(this);
+
+
+        // Create the NotificationChannel, but only on API 26+ because
+        // the NotificationChannel class is new and not in the support library
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = getString(R.string.camera);
+
+            int importance = NotificationManager.IMPORTANCE_HIGH;
+            NotificationChannel channel = new NotificationChannel(CHANNEL_CAMERA, name, importance);
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
     }
 
     private void resetDefaultServer() {

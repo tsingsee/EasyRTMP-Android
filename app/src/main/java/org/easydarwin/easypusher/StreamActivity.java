@@ -13,7 +13,6 @@ import android.content.ServiceConnection;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.graphics.SurfaceTexture;
-import android.media.Image;
 import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
 import android.os.Build;
@@ -34,8 +33,6 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -56,7 +53,6 @@ import org.easydarwin.util.Util;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.jar.Manifest;
 
 import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
@@ -537,6 +533,8 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
                 String url = EasyApplication.getEasyApplication().getUrl();
                 txtStreamAddress.setText(url);
                 sendMessage("推流中");
+                ImageView startPush = findViewById(R.id.streaming_activity_push);
+                startPush.setImageResource(R.drawable.start_push_pressed);
             }
         } else {
             ms = new MediaStream(getApplicationContext(), surface, PreferenceManager.getDefaultSharedPreferences(this)
