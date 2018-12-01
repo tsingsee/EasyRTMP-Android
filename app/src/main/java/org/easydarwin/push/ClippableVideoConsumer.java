@@ -7,7 +7,6 @@ import org.easydarwin.muxer.EasyMuxer;
 import org.easydarwin.sw.JNIUtil;
 import org.easydarwin.sw.TxtOverlay;
 
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -22,7 +21,13 @@ public class ClippableVideoConsumer implements VideoConsumerWrapper {
     private int originalWidth,originalHeight;
     private byte[] i420_buffer2;
 
-
+    /**
+     *
+     * @param context   context
+     * @param consumer  the consumer which will consume the clipped video.
+     * @param width     clipped video width
+     * @param height    clipped video height
+     */
     public ClippableVideoConsumer(Context context, VideoConsumer consumer, int width, int height) {
         this.consumer = consumer;
         this.width = width;
