@@ -55,9 +55,9 @@ public class MediaStream {
     WeakReference<SurfaceTexture> mSurfaceHolderRef;
     Camera mCamera;
     boolean pushStream = false;//是否要推送数据
-    AudioStream audioStream ;
+    AudioStream audioStream;
     private boolean isCameraBack = true;
-    private int mDgree;
+    private int displayRotationDegree;
     private Context mApplicationContext;
     private boolean mSWCodec;
     private VideoConsumer mVC, mRecordVC;
@@ -66,10 +66,11 @@ public class MediaStream {
     private final Handler mCameraHandler;
     //    private int previewFormat;
     public static CodecInfo info = new CodecInfo();
-    private byte []i420_buffer;
+    private byte[] i420_buffer;
     private int frameWidth;
     private int frameHeight;
     private Camera.CameraInfo camInfo;
+    private Camera.Parameters parameters;
 
     public MediaStream(Context context, SurfaceTexture texture, boolean enableVideo) {
         mApplicationContext = context;
@@ -104,27 +105,25 @@ public class MediaStream {
         this.enanleVideo = enableVideo;
 
         if (enableVideo)
-            previewCallback = new Camera.PreviewCallback() {
-
-                @Override
-                public void onPreviewFrame(byte[] data, Camera camera) {
-                    if (data == null) return;
-                    int cameraRotationOffset = camInfo.orientation;
-//                    if (mCameraId == Camera.CameraInfo.CAMERA_FACING_FRONT)
-//                        cameraRotationOffset += 180;
-
-                    if (i420_buffer == null || i420_buffer.length != data.length){
-                        i420_buffer = new byte[data.length];
-                    }
-                    JNIUtil.ConvertToI420(data, i420_buffer, width, height, 0, 0,  width, height, cameraRotationOffset%360, 2);
-                    System.arraycopy(i420_buffer, 0, data, 0, data.length);
-                    if (mRecordVC != null) {
-                        mRecordVC.onVideo(i420_buffer, 0);
-                    }
-                    mVC.onVideo(data, 0);
-                    mCamera.addCallbackBuffer(data);
+            previewCallback = (data, camera) -> {
+                if (data == null) return;
+                int result;
+                if (camInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                    result = (camInfo.orientation + displayRotationDegree) % 360;
+                } else {  // back-facing
+                    result = (camInfo.orientation - displayRotationDegree + 360) % 360;
                 }
 
+                if (i420_buffer == null || i420_buffer.length != data.length) {
+                    i420_buffer = new byte[data.length];
+                }
+                JNIUtil.ConvertToI420(data, i420_buffer, width, height, 0, 0, width, height, result % 360, 2);
+                System.arraycopy(i420_buffer, 0, data, 0, data.length);
+                if (mRecordVC != null) {
+                    mRecordVC.onVideo(i420_buffer, 0);
+                }
+                mVC.onVideo(data, 0);
+                mCamera.addCallbackBuffer(data);
             };
     }
 
@@ -141,8 +140,12 @@ public class MediaStream {
         pushStream = true;
     }
 
-    public void setDgree(int dgree) {
-        mDgree = dgree;
+    public int getDisplayRotationDegree() {
+        return displayRotationDegree;
+    }
+
+    public void setDisplayRotationDegree(int degree) {
+        displayRotationDegree = degree;
     }
 
     /**
@@ -152,12 +155,9 @@ public class MediaStream {
         if (mCamera == null) return;
         stopPreview();
         destroyCamera();
-        mCameraHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                width = w;
-                height = h;
-            }
+        mCameraHandler.post(() -> {
+            width = w;
+            height = h;
         });
         createCamera();
         startPreview();
@@ -179,12 +179,9 @@ public class MediaStream {
     public void createCamera() {
 
         if (Thread.currentThread() != mCameraThread) {
-            mCameraHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    Process.setThreadPriority(Process.THREAD_PRIORITY_DEFAULT);
-                    createCamera();
-                }
+            mCameraHandler.post(() -> {
+                Process.setThreadPriority(Process.THREAD_PRIORITY_DEFAULT);
+                createCamera();
             });
             return;
         }
@@ -194,25 +191,30 @@ public class MediaStream {
         try {
             mSWCodec = PreferenceManager.getDefaultSharedPreferences(mApplicationContext).getBoolean("key-sw-codec", false);
             mCamera = Camera.open(mCameraId);
-            mCamera.setErrorCallback(new Camera.ErrorCallback() {
-                @Override
-                public void onError(int i, Camera camera) {
-                    throw new IllegalStateException("Camera Error:" + i);
-                }
+            mCamera.setErrorCallback((i, camera) -> {
+                throw new IllegalStateException("Camera Error:" + i);
             });
             Log.i(TAG, "open Camera");
 
-            Camera.Parameters parameters = mCamera.getParameters();
-            int[] max = determineMaximumSupportedFramerate(parameters);
+            parameters = mCamera.getParameters();
+            if (Util.getSupportResolution(mApplicationContext).size() == 0) {
+                StringBuilder stringBuilder = new StringBuilder();
+                List<Camera.Size> supportedPreviewSizes = parameters.getSupportedPreviewSizes();
+                for (Camera.Size str : supportedPreviewSizes) {
+                    stringBuilder.append(str.width + "x" + str.height).append(";");
+                }
+                Util.saveSupportResolution(mApplicationContext, stringBuilder.toString());
+            }
+            BUS.post(new SupportResolution());
+
             camInfo = new Camera.CameraInfo();
             Camera.getCameraInfo(mCameraId, camInfo);
             int cameraRotationOffset = camInfo.orientation;
             if (mCameraId == Camera.CameraInfo.CAMERA_FACING_FRONT)
                 cameraRotationOffset += 180;
-            int rotate = (360 + cameraRotationOffset - mDgree) % 360;
+            int rotate = (360 + cameraRotationOffset - displayRotationDegree) % 360;
             parameters.setRotation(rotate);
-            parameters.setRecordingHint(true);
-
+//            parameters.setRecordingHint(true);
 
 
             ArrayList<CodecInfo> infos = listEncoders("video/avc");
@@ -220,16 +222,19 @@ public class MediaStream {
                 CodecInfo ci = infos.get(0);
                 info.mName = ci.mName;
                 info.mColorFormat = ci.mColorFormat;
-            }else {
+            } else {
                 mSWCodec = true;
             }
 //            List<Camera.Size> sizes = parameters.getSupportedPreviewSizes();
             parameters.setPreviewSize(width, height);
-//            parameters.setPreviewFpsRange(max[0], max[1]);
-            parameters.setPreviewFrameRate(20);
+            int[] ints = determineMaximumSupportedFramerate(parameters);
+            parameters.setPreviewFpsRange(ints[0], ints[1]);
+
             List<String> supportedFocusModes = parameters.getSupportedFocusModes();
             if (supportedFocusModes == null) supportedFocusModes = new ArrayList<>();
-            if (supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
+            if (supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
+                parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+            } else if (supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
                 parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
             }
 //            int maxExposureCompensation = parameters.getMaxExposureCompensation();
@@ -252,7 +257,7 @@ public class MediaStream {
             mCamera.setParameters(parameters);
             Log.i(TAG, "setParameters");
             int displayRotation;
-            displayRotation = (cameraRotationOffset - mDgree + 360) % 360;
+            displayRotation = (cameraRotationOffset - displayRotationDegree + 360) % 360;
             mCamera.setDisplayOrientation(displayRotation);
 
             Log.i(TAG, "setDisplayOrientation");
@@ -281,12 +286,7 @@ public class MediaStream {
 
     public synchronized void startRecord() {
         if (Thread.currentThread() != mCameraThread) {
-            mCameraHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    startRecord();
-                }
-            });
+            mCameraHandler.post(() -> startRecord());
             return;
         }
         boolean rotate = false;
@@ -306,12 +306,7 @@ public class MediaStream {
 
     public synchronized void stopRecord() {
         if (Thread.currentThread() != mCameraThread) {
-            mCameraHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    stopRecord();
-                }
-            });
+            mCameraHandler.post(() -> stopRecord());
             return;
         }
         if (mRecordVC == null || audioStream == null) {
@@ -330,17 +325,12 @@ public class MediaStream {
      */
     public synchronized void startPreview() {
         if (Thread.currentThread() != mCameraThread) {
-            mCameraHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    startPreview();
-                }
-            });
+            mCameraHandler.post(() -> startPreview());
             return;
         }
         if (mCamera != null) {
-            int previewFormat = mCamera.getParameters().getPreviewFormat();
-            Camera.Size previewSize = mCamera.getParameters().getPreviewSize();
+            int previewFormat = parameters.getPreviewFormat();
+            Camera.Size previewSize = parameters.getPreviewSize();
             int size = previewSize.width * previewSize.height * ImageFormat.getBitsPerPixel(previewFormat) / 8;
             width = previewSize.width;
             height = previewSize.height;
@@ -349,15 +339,7 @@ public class MediaStream {
             mCamera.setPreviewCallbackWithBuffer(previewCallback);
             Log.i(TAG, "setPreviewCallbackWithBuffer");
 
-            if (Util.getSupportResolution(mApplicationContext).size() == 0) {
-                StringBuilder stringBuilder = new StringBuilder();
-                List<Camera.Size> supportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
-                for (Camera.Size str : supportedPreviewSizes) {
-                    stringBuilder.append(str.width + "x" + str.height).append(";");
-                }
-                Util.saveSupportResolution(mApplicationContext, stringBuilder.toString());
-            }
-            BUS.post(new SupportResolution());
+
 
             try {
                 SurfaceTexture holder = mSurfaceHolderRef.get();
@@ -371,25 +353,18 @@ public class MediaStream {
 
 
             mCamera.startPreview();
-            Log.i(TAG, "startPreview");
-            try {
-                mCamera.autoFocus(null);
-            } catch (Exception e) {
-                //忽略异常
-                Log.i(TAG, "auto foucus fail");
+
+            boolean frameRotate;
+            int result;
+            if (camInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                result = (camInfo.orientation + displayRotationDegree) % 360;
+            } else {  // back-facing
+                result = (camInfo.orientation - displayRotationDegree + 360) % 360;
             }
+            frameRotate = result % 180 != 0;
 
-            boolean frameRotate = false;
-
-            int cameraRotationOffset = camInfo.orientation;
-            if (mCameraId == Camera.CameraInfo.CAMERA_FACING_FRONT)
-                cameraRotationOffset += 180;
-
-            if (cameraRotationOffset % 180 != 0) {
-                frameRotate = true;
-            }
-            frameWidth = frameRotate ? height:width;
-            frameHeight = frameRotate ? width:height;
+            frameWidth = frameRotate ? height : width;
+            frameHeight = frameRotate ? width : height;
             if (mSWCodec) {
                 mVC = new ClippableVideoConsumer(mApplicationContext, new SWConsumer(mApplicationContext, mEasyPusher), frameWidth, frameHeight);
             } else {
@@ -409,12 +384,7 @@ public class MediaStream {
      */
     public synchronized void stopPreview() {
         if (Thread.currentThread() != mCameraThread) {
-            mCameraHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    stopPreview();
-                }
-            });
+            mCameraHandler.post(() -> stopPreview());
             return;
         }
         if (mCamera != null) {
@@ -504,12 +474,7 @@ public class MediaStream {
     public synchronized void destroyCamera() {
 
         if (Thread.currentThread() != mCameraThread) {
-            mCameraHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    destroyCamera();
-                }
-            });
+            mCameraHandler.post(() -> destroyCamera());
             return;
         }
         if (mCamera != null) {
@@ -546,12 +511,7 @@ public class MediaStream {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
             mCameraThread.quitSafely();
         } else {
-            if (!mCameraHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    mCameraThread.quit();
-                }
-            })) {
+            if (!mCameraHandler.post(() -> mCameraThread.quit())) {
                 mCameraThread.quit();
             }
         }

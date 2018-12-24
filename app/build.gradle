@@ -19,8 +19,8 @@ android {
         }
         minSdkVersion 19
         targetSdkVersion 26
-        versionCode 34
-        versionName "1.4.181114"
+        versionCode generateVersionCode()
+        versionName generateVersionName()
         testInstrumentationRunner 'android.support.test.runner.AndroidJUnitRunner'
         flavorDimensions "versionCode"
     }
@@ -40,6 +40,10 @@ android {
     }
     productFlavors {
         rtmp {}
+    }
+    compileOptions {
+        sourceCompatibility = '1.8'
+        targetCompatibility = '1.8'
     }
 }
 

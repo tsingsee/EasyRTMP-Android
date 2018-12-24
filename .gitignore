@@ -8,3 +8,5 @@ build/
 *.iml
 
 app/rtmp/release/
+gradle.properties
+local.properties

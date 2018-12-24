@@ -45,7 +45,6 @@ import org.easydarwin.bus.StopRecord;
 import org.easydarwin.bus.StreamStat;
 import org.easydarwin.bus.SupportResolution;
 import org.easydarwin.easyrtmp.push.EasyRTMP;
-import org.easydarwin.push.InitCallback;
 import org.easydarwin.push.MediaStream;
 import org.easydarwin.update.UpdateMgr;
 import org.easydarwin.util.Util;
@@ -58,6 +57,7 @@ import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static org.easydarwin.easypusher.EasyApplication.BUS;
 import static org.easydarwin.easypusher.SettingActivity.REQUEST_OVERLAY_PERMISSION;
+import static org.easydarwin.easyrtmp.push.EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_VALIDITY_PERIOD_ERR;
 import static org.easydarwin.update.UpdateMgr.MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE;
 
 public class StreamActivity extends AppCompatActivity implements View.OnClickListener, TextureView.SurfaceTextureListener {
@@ -381,7 +381,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
 
     private void startCamera() {
         mMediaStream.updateResolution(width, height);
-        mMediaStream.setDgree(getDgree());
+        mMediaStream.setDisplayRotationDegree(getDisplayRotationDegree());
         mMediaStream.createCamera();
         mMediaStream.startPreview();
 
@@ -391,7 +391,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
         }
     }
 
-    private int getDgree() {
+    private int getDisplayRotationDegree() {
         int rotation = getWindowManager().getDefaultDisplay().getRotation();
         int degrees = 0;
         switch (rotation) {
@@ -429,29 +429,21 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
 
     @Subscribe
     public void onStreamStat(final StreamStat stat) {
-        streamStat.post(new Runnable() {
-            @Override
-            public void run() {
-                streamStat.setText(getString(R.string.stream_stat, stat.fps, stat.bps / 1024));
-            }
-        });
+        streamStat.post(() -> streamStat.setText(getString(R.string.stream_stat, stat.framePerSecond, stat.bytesPerSecond * 8 / 1024)));
     }
 
     @Subscribe
-    public void onSupportResolution(SupportResolution resolution) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                listResolution = Util.getSupportResolution(getApplicationContext());
-                boolean supportdefault = listResolution.contains(String.format("%dx%d", width, height));
-                if (!supportdefault) {
-                    String r = listResolution.get(0);
-                    String[] splitR = r.split("x");
-                    width = Integer.parseInt(splitR[0]);
-                    height = Integer.parseInt(splitR[1]);
-                }
-                initSpninner();
+    public void onSupportResolution(SupportResolution res) {
+        runOnUiThread(() -> {
+            listResolution = Util.getSupportResolution(getApplicationContext());
+            boolean supportdefault = listResolution.contains(String.format("%dx%d", width, height));
+            if (!supportdefault) {
+                String r = listResolution.get(0);
+                String[] splitR = r.split("x");
+                width = Integer.parseInt(splitR[0]);
+                height = Integer.parseInt(splitR[1]);
             }
+            initSpninner();
         });
     }
 
@@ -535,6 +527,15 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
                 sendMessage("推流中");
                 ImageView startPush = findViewById(R.id.streaming_activity_push);
                 startPush.setImageResource(R.drawable.start_push_pressed);
+            }
+            if (ms.getDisplayRotationDegree() != getDisplayRotationDegree()){
+                int orientation = getRequestedOrientation();
+                if (orientation == SCREEN_ORIENTATION_UNSPECIFIED || orientation == ActivityInfo.SCREEN_ORIENTATION_PORTRAIT){
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+
+                }else{
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+                }
             }
         } else {
             ms = new MediaStream(getApplicationContext(), surface, PreferenceManager.getDefaultSharedPreferences(this)
@@ -630,53 +631,58 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
         }else{
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         }
-//        if (mMediaStream != null) mMediaStream.setDgree(getDgree());
+//        if (mMediaStream != null) mMediaStream.setDisplayRotationDegree(getDisplayRotationDegree());
+    }
+
+    @Subscribe
+    public void onPushCallback(final PushCallback cb){
+        switch (cb.code) {
+            case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_INVALID_KEY:
+                sendMessage("无效Key");
+                break;
+            case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_SUCCESS:
+                sendMessage("激活成功");
+                break;
+            case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_CONNECTING:
+                sendMessage("连接中");
+                break;
+            case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_CONNECTED:
+                sendMessage("连接成功");
+                break;
+            case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_CONNECT_FAILED:
+                sendMessage("连接失败");
+                break;
+            case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_CONNECT_ABORT:
+                sendMessage("连接异常中断");
+                break;
+            case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_PUSHING:
+                sendMessage("推流中");
+                break;
+            case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_DISCONNECTED:
+                sendMessage("断开连接");
+                break;
+            case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_PLATFORM_ERR:
+                sendMessage("平台不匹配");
+                break;
+            case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_COMPANY_ID_LEN_ERR:
+                sendMessage("断授权使用商不匹配");
+                break;
+            case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_PROCESS_NAME_LEN_ERR:
+                sendMessage("进程名称长度不匹配");
+                break;
+            case EASY_ACTIVATE_VALIDITY_PERIOD_ERR:
+                sendMessage("进程名称长度不匹配");
+                break;
+
+        }
     }
 
     public void onStartOrStopPush(View view) {
         ImageView ib = findViewById(R.id.streaming_activity_push);
         if (!mMediaStream.isStreaming()) {
             String url = EasyApplication.getEasyApplication().getUrl();
-            mMediaStream.startStream(url, new InitCallback() {
-                @Override
-                public void onCallback(int code) {
-                    switch (code) {
-                        case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_INVALID_KEY:
-                            sendMessage("无效Key");
-                            break;
-                        case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_SUCCESS:
-                            sendMessage("激活成功");
-                            break;
-                        case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_CONNECTING:
-                            sendMessage("连接中");
-                            break;
-                        case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_CONNECTED:
-                            sendMessage("连接成功");
-                            break;
-                        case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_CONNECT_FAILED:
-                            sendMessage("连接失败");
-                            break;
-                        case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_CONNECT_ABORT:
-                            sendMessage("连接异常中断");
-                            break;
-                        case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_PUSHING:
-                            sendMessage("推流中");
-                            break;
-                        case EasyRTMP.OnInitPusherCallback.CODE.EASY_RTMP_STATE_DISCONNECTED:
-                            sendMessage("断开连接");
-                            break;
-                        case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_PLATFORM_ERR:
-                            sendMessage("平台不匹配");
-                            break;
-                        case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_COMPANY_ID_LEN_ERR:
-                            sendMessage("断授权使用商不匹配");
-                            break;
-                        case EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_PROCESS_NAME_LEN_ERR:
-                            sendMessage("进程名称长度不匹配");
-                            break;
-                    }
-                }
-            });
+
+            mMediaStream.startStream(url, code -> EasyApplication.BUS.post(new PushCallback(code)));
             ib.setImageResource(R.drawable.start_push_pressed);
             txtStreamAddress.setText(url);
         } else {

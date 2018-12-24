@@ -24,6 +24,8 @@ import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
+import android.widget.SeekBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.easydarwin.config.Config;
@@ -194,6 +196,33 @@ public class SettingActivity extends AppCompatActivity {
                             .putBoolean(EasyApplication.KEY_ENABLE_AUDIO, false)
                             .apply();
                 }
+            }
+        });
+
+
+        SeekBar sb = findViewById(R.id.bitrate_seekbar);
+        final TextView bitrateValue = findViewById(R.id.bitrate_value);
+        int bitrate_added_kbps = PreferenceManager.getDefaultSharedPreferences(this).getInt("bitrate_added_kbps", 300000);
+        int kbps = 72000 + bitrate_added_kbps;
+        bitrateValue.setText(kbps/1000 + "kbps");
+
+        sb.setMax(5000000);
+        sb.setProgress(bitrate_added_kbps);
+        sb.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                int kbps = 72000 + progress;
+                bitrateValue.setText(kbps/1000 + "kbps");
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                PreferenceManager.getDefaultSharedPreferences(SettingActivity.this).edit().putInt("bitrate_added_kbps", seekBar.getProgress()).apply();
             }
         });
     }

@@ -1,11 +1,11 @@
 package org.easydarwin.push;
 
 import android.content.Context;
-import android.graphics.ImageFormat;
 import android.media.MediaCodec;
 import android.media.MediaFormat;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 import org.easydarwin.easypusher.BuildConfig;
@@ -224,7 +224,7 @@ public class HWConsumer extends Thread implements VideoConsumer {
 1 HD 1080p
 1
 Video resolution 320 x 240 px 720 x 480 px 1280 x 720 px 1920 x 1080 px
-Video frame rate 20 fps 30 fps 30 fps 30 fps
+Video frame rate 20 framePerSecond 30 framePerSecond 30 framePerSecond 30 framePerSecond
 Video bitrate 384 Kbps 2 Mbps 4 Mbps 10 Mbps
         */
         int framerate = 20;
@@ -236,10 +236,7 @@ Video bitrate 384 Kbps 2 Mbps 4 Mbps 10 Mbps
 //            bitrate = 2 * width * height;
 //        }
 
-        int bitrate = (int) (mWidth * mHeight * 20 * 2 * 0.05f);
-        if (mWidth >= 1920 || mHeight >= 1920) bitrate *= 0.3;
-        else if (mWidth >= 1280 || mHeight >= 1280) bitrate *= 0.4;
-        else if (mWidth >= 720 || mHeight >= 720) bitrate *= 0.6;
+        int bitrate = 72 * 1000 + PreferenceManager.getDefaultSharedPreferences(mContext).getInt("bitrate_added_kbps", 300000);
         try {
             mMediaCodec = MediaCodec.createByCodecName(info.mName);
         } catch (IOException e) {

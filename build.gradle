@@ -31,3 +31,17 @@ gradle.projectsEvaluated {
         options.compilerArgs << "-Xmaxerrs" << "500" // or whatever number you want
     }
 }
+
+
+static def generateVersionCode() {
+    def result = "git rev-list HEAD --count".execute().text.trim() //unix
+    if(result.empty) result = "PowerShell -Command git rev-list HEAD --count".execute().text.trim() //windows
+    if(result.empty) throw new RuntimeException("Could not generate versioncode on this platform? Cmd output: ${result.text}")
+    return result.toInteger()
+}
+static def generateVersionName() {
+    def result = "git describe".execute().text.trim() //unix
+    if(result.empty) result = "PowerShell -Command git describe".execute().text.trim() //windows
+    if(result.empty) throw new RuntimeException("Could not generate versioncode on this platform? Cmd output: ${result.text}")
+    return result
+}

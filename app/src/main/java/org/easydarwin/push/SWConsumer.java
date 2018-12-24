@@ -1,7 +1,7 @@
 package org.easydarwin.push;
 
 import android.content.Context;
-import android.graphics.ImageFormat;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 import org.easydarwin.muxer.EasyMuxer;
@@ -16,6 +16,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 public class SWConsumer extends Thread implements VideoConsumer {
     private static final String TAG = "SWConsumer";
+    private final Context context;
     private int mHeight;
     private int mWidth;
     private X264Encoder x264;
@@ -23,6 +24,7 @@ public class SWConsumer extends Thread implements VideoConsumer {
     private volatile boolean mVideoStarted;
     private byte []yv12;
     public SWConsumer(Context context, Pusher pusher){
+        this.context = context;
         mPusher = pusher;
     }
     @Override
@@ -31,8 +33,8 @@ public class SWConsumer extends Thread implements VideoConsumer {
         this.mHeight = height;
 
         x264 = new X264Encoder();
-        int bitrate = (int) (mWidth*mHeight*20*2*0.07f);
-        x264.create(width, height, 20, bitrate/500);
+        int bitrate = 72 * 1000 + PreferenceManager.getDefaultSharedPreferences(context).getInt("bitrate_added_kbps", 300000);
+        x264.create(width, height, 20, bitrate/1000);
         mVideoStarted = true;
         start();
     }

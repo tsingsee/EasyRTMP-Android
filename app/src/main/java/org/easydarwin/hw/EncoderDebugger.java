@@ -20,15 +20,6 @@
 
 package org.easydarwin.hw;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-
-import org.easydarwin.easypusher.BuildConfig;
-import org.easydarwin.hw.CodecManager.Codec;
-
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -40,6 +31,15 @@ import android.os.Build;
 import android.preference.PreferenceManager;
 import android.util.Base64;
 import android.util.Log;
+
+import org.easydarwin.easypusher.BuildConfig;
+import org.easydarwin.hw.CodecManager.Codec;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 /**
  * The purpose of this class is to detect and by-pass some bugs (or
@@ -212,7 +212,7 @@ public class EncoderDebugger {
                     + "encoderName", "");
             mEncoderColorFormat = mPreferences.getInt(PREF_PREFIX + resolution
                     + "colorFormat", 0);
-            mB64PPS = mPreferences.getString(PREF_PREFIX + resolution + "bps",
+            mB64PPS = mPreferences.getString(PREF_PREFIX + resolution + "bytesPerSecond",
                     "");
             mB64SPS = mPreferences.getString(PREF_PREFIX + resolution + "sps",
                     "");
@@ -355,7 +355,7 @@ public class EncoderDebugger {
                     mEncoderColorFormat);
             editor.putString(PREF_PREFIX + resolution + "encoderName",
                     mEncoderName);
-            editor.putString(PREF_PREFIX + resolution + "bps", mB64PPS);
+            editor.putString(PREF_PREFIX + resolution + "bytesPerSecond", mB64PPS);
             editor.putString(PREF_PREFIX + resolution + "sps", mB64SPS);
         }
 

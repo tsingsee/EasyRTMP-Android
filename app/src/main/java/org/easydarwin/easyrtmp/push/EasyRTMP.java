@@ -122,7 +122,7 @@ public class EasyRTMP implements Pusher {
         if (interval >= 3000){
             long bps = mTotal * 1000 / (interval);
             long fps = mTotalFrms * 1000 / (interval);
-            Log.i(TAG, String.format("bps:%d, fps:%d", fps, bps));
+            Log.i(TAG, String.format("bytesPerSecond:%d, framePerSecond:%d", fps, bps));
             pPreviewTS = System.currentTimeMillis();
             mTotal = 0;
             mTotalFrms = 0;
