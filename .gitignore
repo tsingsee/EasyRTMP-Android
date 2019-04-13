@@ -7,6 +7,6 @@ build/
 
 *.iml
 
-app/rtmp/release/
+app/rtmp
 gradle.properties
 local.properties

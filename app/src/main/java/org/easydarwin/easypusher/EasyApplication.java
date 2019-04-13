@@ -22,6 +22,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import static org.easydarwin.easyrtmp.push.EasyRTMP.getActiveDays;
+
 public class EasyApplication extends Application {
 
     public static final String KEY_ENABLE_VIDEO = "key-enable-video";
@@ -29,6 +31,7 @@ public class EasyApplication extends Application {
     public static final String CHANNEL_CAMERA = "camera";
 
     private static EasyApplication mApplication;
+    public static int activeDays = 9999;
 
 
     public static final Bus BUS = new Bus(ThreadEnforcer.ANY);
@@ -64,6 +67,7 @@ public class EasyApplication extends Application {
         }
 
         BUS.register(this);
+        activeDays = getActiveDays(this,BuildConfig.RTMP_KEY);
 
 
         // Create the NotificationChannel, but only on API 26+ because

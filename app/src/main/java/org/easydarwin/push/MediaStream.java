@@ -8,6 +8,7 @@ import android.hardware.Camera;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaCodecList;
+import android.media.MediaFormat;
 import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
@@ -59,7 +60,7 @@ public class MediaStream {
     private boolean isCameraBack = true;
     private int displayRotationDegree;
     private Context mApplicationContext;
-    private boolean mSWCodec;
+    private boolean mSWCodec,mHevc;
     private VideoConsumer mVC, mRecordVC;
     private EasyMuxer mMuxer;
     private final HandlerThread mCameraThread;
@@ -76,7 +77,6 @@ public class MediaStream {
         mApplicationContext = context;
         audioStream = AudioStream.getInstance(mApplicationContext);
         mSurfaceHolderRef = new WeakReference(texture);
-        mEasyPusher = new EasyRTMP();
         mCameraThread = new HandlerThread("CAMERA") {
             public void run() {
                 try {
@@ -125,14 +125,22 @@ public class MediaStream {
                 mVC.onVideo(data, 0);
                 mCamera.addCallbackBuffer(data);
             };
+
+
     }
 
-    public void startStream(String url, InitCallback callback) {
-        if (PreferenceManager.getDefaultSharedPreferences(EasyApplication.getEasyApplication()).getBoolean(EasyApplication.KEY_ENABLE_VIDEO, true))
-            mEasyPusher.initPush(url, mApplicationContext, callback);
-        else
-            mEasyPusher.initPush(url, mApplicationContext, callback, ~0);
-        pushStream = true;
+    public void startStream(String url, InitCallback callback) throws IOException{
+        try {
+            if (PreferenceManager.getDefaultSharedPreferences(EasyApplication.getEasyApplication()).getBoolean(EasyApplication.KEY_ENABLE_VIDEO, true))
+                mEasyPusher.initPush(url, mApplicationContext, callback);
+            else
+                mEasyPusher.initPush(url, mApplicationContext, callback, ~0);
+            pushStream = true;
+        }catch (Exception ex){
+            ex.printStackTrace();
+            throw new IOException(ex.getMessage());
+        }
+
     }
 
     public void startStream(String ip, String port, String id, InitCallback callback) {
@@ -185,6 +193,8 @@ public class MediaStream {
             });
             return;
         }
+        mHevc = PreferenceManager.getDefaultSharedPreferences(mApplicationContext).getBoolean("key-hevc-codec", false);
+        mEasyPusher = new EasyRTMP(mHevc ? EasyRTMP.VIDEO_CODEC_H265:EasyRTMP.VIDEO_CODEC_H264);
         if (!enanleVideo) {
             return;
         }
@@ -217,7 +227,7 @@ public class MediaStream {
 //            parameters.setRecordingHint(true);
 
 
-            ArrayList<CodecInfo> infos = listEncoders("video/avc");
+            ArrayList<CodecInfo> infos = listEncoders(mHevc ? MediaFormat.MIMETYPE_VIDEO_HEVC : MediaFormat.MIMETYPE_VIDEO_AVC);
             if (!infos.isEmpty()) {
                 CodecInfo ci = infos.get(0);
                 info.mName = ci.mName;
@@ -295,7 +305,7 @@ public class MediaStream {
         }
         long millis = PreferenceManager.getDefaultSharedPreferences(mApplicationContext).getInt("record_interval", 300000);
         mMuxer = new EasyMuxer(new File(recordPath, new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date())).toString(), millis);
-        mRecordVC = new RecordVideoConsumer(mApplicationContext, mMuxer);
+        mRecordVC = new RecordVideoConsumer(mApplicationContext, mHevc ? MediaFormat.MIMETYPE_VIDEO_HEVC:MediaFormat.MIMETYPE_VIDEO_AVC, mMuxer);
         mRecordVC.onVideoStart(frameWidth, frameHeight);
         if (audioStream != null) {
             audioStream.setMuxer(mMuxer);
@@ -368,7 +378,7 @@ public class MediaStream {
             if (mSWCodec) {
                 mVC = new ClippableVideoConsumer(mApplicationContext, new SWConsumer(mApplicationContext, mEasyPusher), frameWidth, frameHeight);
             } else {
-                mVC = new ClippableVideoConsumer(mApplicationContext, new HWConsumer(mApplicationContext, mEasyPusher), frameWidth, frameHeight);
+                mVC = new ClippableVideoConsumer(mApplicationContext, new HWConsumer(mApplicationContext, mHevc ? MediaFormat.MIMETYPE_VIDEO_HEVC:MediaFormat.MIMETYPE_VIDEO_AVC, mEasyPusher), frameWidth, frameHeight);
             }
             mVC.onVideoStart(frameWidth, frameHeight);
         }
@@ -533,7 +543,6 @@ public class MediaStream {
     }
 
     public static ArrayList<CodecInfo> listEncoders(String mime) {
-        // 可能有多个编码库，都获取一下。。。
         ArrayList<CodecInfo> codecInfos = new ArrayList<CodecInfo>();
         int numCodecs = MediaCodecList.getCodecCount();
         // int colorFormat = 0;

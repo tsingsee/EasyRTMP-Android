@@ -332,9 +332,20 @@ public class RecordService extends Service {
             @Override
             public void run() {
                 String url = null;
-                mEasyPusher = new EasyRTMP();
+                boolean mHevc = PreferenceManager.getDefaultSharedPreferences(RecordService.this).getBoolean("key-hevc-codec", false);
+                mEasyPusher = new EasyRTMP(mHevc ? EasyRTMP.VIDEO_CODEC_H265:EasyRTMP.VIDEO_CODEC_H264);
                 url = EasyApplication.getEasyApplication().getUrl();
-                mEasyPusher.initPush(url, getApplicationContext(), code -> EasyApplication.BUS.post(new PushCallback(code)));
+
+                try {
+                    mEasyPusher.initPush(url, getApplicationContext(), code -> EasyApplication.BUS.post(new PushCallback(code)));
+                }catch (Exception ex){
+                    ex.printStackTrace();
+                    EasyApplication.BUS.post(new PushCallback(EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_INVALID_KEY));
+                    mEasyPusher = null;
+                    return;
+                }
+
+
                 try {
                     audioStream.addPusher(mEasyPusher);
 
@@ -508,7 +519,8 @@ public class RecordService extends Service {
                 e.printStackTrace();
             }
         }
-        mEasyPusher.stop();
+        if (mEasyPusher != null)
+            mEasyPusher.stop();
         mEasyPusher = null;
     }
 

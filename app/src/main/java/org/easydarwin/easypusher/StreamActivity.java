@@ -50,6 +50,7 @@ import org.easydarwin.update.UpdateMgr;
 import org.easydarwin.util.Util;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -114,6 +115,8 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
         } else {
             // resume..
         }
+
+        notifyAboutColorChange();
     }
 
 
@@ -142,7 +145,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
         if (RecordService.mEasyPusher != null) {
             push_screen.setImageResource(R.drawable.push_screen_click);
             TextView viewById = findViewById(R.id.push_screen_url);
-            viewById.setText(EasyApplication.getEasyApplication().getUrl() + "_s");
+            viewById.setText(EasyApplication.getEasyApplication().getUrl());
         }
 
         String url = "http://www.easydarwin.org/versions/easyrtmp/version.txt";
@@ -262,7 +265,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
             im.setImageResource(R.drawable.push_screen_click);
 
             TextView viewById = findViewById(R.id.push_screen_url);
-            viewById.setText(EasyApplication.getEasyApplication().getUrl() + "_s");
+            viewById.setText(EasyApplication.getEasyApplication().getUrl());
         } else {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 MediaProjectionManager mMpMngr = (MediaProjectionManager) getApplicationContext().getSystemService(MEDIA_PROJECTION_SERVICE);
@@ -280,13 +283,10 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (!Settings.canDrawOverlays(this)) {
 
-                new AlertDialog.Builder(this).setMessage("推送屏幕需要APP出现在顶部.是否确定?").setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
+                new AlertDialog.Builder(this).setMessage("推送屏幕需要APP出现在顶部.是否确定?").setPositiveButton(android.R.string.ok, (dialogInterface, i) -> {
 
-                        final Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + BuildConfig.APPLICATION_ID));
-                        startActivityForResult(intent, REQUEST_OVERLAY_PERMISSION);
-                    }
+                    final Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + BuildConfig.APPLICATION_ID));
+                    startActivityForResult(intent, REQUEST_OVERLAY_PERMISSION);
                 }).setNegativeButton(android.R.string.cancel,null).setCancelable(false).show();
                 return;
             }
@@ -479,20 +479,14 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
         if (isStreaming && PreferenceManager.getDefaultSharedPreferences(this).getBoolean(SettingActivity.KEY_ENABLE_BACKGROUND_CAMERA, false)) {
             new AlertDialog.Builder(this).setTitle("是否允许后台上传？")
                     .setMessage("您设置了使能摄像头后台采集,是否继续在后台采集并上传视频？如果是，记得直播结束后,再回来这里关闭直播。")
-                    .setNeutralButton("后台采集", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialogInterface, int i) {
-                    PreferenceManager.getDefaultSharedPreferences(StreamActivity.this).edit().putBoolean("background_camera_alert", true).apply();
-                    StreamActivity.super.onBackPressed();
-                }
-            }).setPositiveButton("退出程序", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialogInterface, int i) {
-                    mMediaStream.stopStream();
-                    StreamActivity.super.onBackPressed();
-                    Toast.makeText(StreamActivity.this, "程序已退出。", Toast.LENGTH_SHORT).show();
-                }
-            }).setNegativeButton(android.R.string.cancel, null).show();
+                    .setNeutralButton("后台采集", (dialogInterface, i) -> {
+                        PreferenceManager.getDefaultSharedPreferences(StreamActivity.this).edit().putBoolean("background_camera_alert", true).apply();
+                        StreamActivity.super.onBackPressed();
+                    }).setPositiveButton("退出程序", (dialogInterface, i) -> {
+                        mMediaStream.stopStream();
+                        StreamActivity.super.onBackPressed();
+                        Toast.makeText(StreamActivity.this, "程序已退出。", Toast.LENGTH_SHORT).show();
+                    }).setNegativeButton(android.R.string.cancel, null).show();
             return;
         } else {
             super.onBackPressed();
@@ -634,6 +628,17 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
 //        if (mMediaStream != null) mMediaStream.setDisplayRotationDegree(getDisplayRotationDegree());
     }
 
+    private void notifyAboutColorChange() {
+        ImageView iv = findViewById(R.id.toolbar_about);
+        if (EasyApplication.activeDays >= 9999) {
+            iv.setImageResource(R.drawable.green);
+        }else if (EasyApplication.activeDays > 0){
+            iv.setImageResource(R.drawable.yellow);
+        }else {
+            iv.setImageResource(R.drawable.red);
+        }
+    }
+
     @Subscribe
     public void onPushCallback(final PushCallback cb){
         switch (cb.code) {
@@ -682,9 +687,15 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
         if (!mMediaStream.isStreaming()) {
             String url = EasyApplication.getEasyApplication().getUrl();
 
-            mMediaStream.startStream(url, code -> EasyApplication.BUS.post(new PushCallback(code)));
-            ib.setImageResource(R.drawable.start_push_pressed);
-            txtStreamAddress.setText(url);
+            try {
+                mMediaStream.startStream(url, code -> EasyApplication.BUS.post(new PushCallback(code)));
+                ib.setImageResource(R.drawable.start_push_pressed);
+                txtStreamAddress.setText(url);
+            } catch (IOException e) {
+                e.printStackTrace();
+                sendMessage("激活失败，无效Key");
+            }
+
         } else {
             mMediaStream.stopStream();
             ib.setImageResource(R.drawable.start_push);

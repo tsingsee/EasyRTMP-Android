@@ -89,7 +89,7 @@
             android:layout_margin="4dp"
             android:onClick="onAbut"
             android:padding="10dp"
-            android:src="@drawable/ic_action_about"
+            android:src="@drawable/green"
             android:textAlignment="@id/txt_res" />
     </LinearLayout>
 

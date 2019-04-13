@@ -12,6 +12,8 @@ import org.easydarwin.easypusher.BuildConfig;
 import org.easydarwin.muxer.EasyMuxer;
 import org.easydarwin.sw.JNIUtil;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
@@ -25,6 +27,7 @@ import static org.easydarwin.push.MediaStream.info;
  */
 public class HWConsumer extends Thread implements VideoConsumer {
     private static final String TAG = "Pusher";
+    private final String mMime;
     public EasyMuxer mMuxer;
     private final Context mContext;
     private final Pusher mPusher;
@@ -37,9 +40,10 @@ public class HWConsumer extends Thread implements VideoConsumer {
     private MediaFormat newFormat;
     private byte[] yuv;
 
-    public HWConsumer(Context context, Pusher pusher) {
+    public HWConsumer(Context context, String mime, Pusher pusher) {
         mContext = context;
         mPusher = pusher;
+        mMime = mime;
     }
 
 
@@ -148,45 +152,59 @@ public class HWConsumer extends Thread implements VideoConsumer {
                 if (muxer != null) {
                     muxer.pumpStream(outputBuffer, bufferInfo, true);
                 }
+                try {
 
-                if (mPusher != null) {
-                    boolean sync = false;
-                    if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {// sps
-                        sync = (bufferInfo.flags & MediaCodec.BUFFER_FLAG_SYNC_FRAME) != 0;
-                        if (!sync) {
-                            byte[] temp = new byte[bufferInfo.size];
-                            outputBuffer.get(temp);
-                            mPpsSps = temp;
-                            mMediaCodec.releaseOutputBuffer(outputBufferIndex, false);
-                            continue;
+                    if (mPusher != null) {
+                        boolean sync = false;
+                        if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {// sps
+                            sync = (bufferInfo.flags & MediaCodec.BUFFER_FLAG_SYNC_FRAME) != 0;
+                            if (!sync) {
+                                byte[] temp = new byte[bufferInfo.size];
+                                outputBuffer.get(temp);
+                                mPpsSps = temp;
+                                continue;
+                            } else {
+                                mPpsSps = new byte[0];
+                            }
+                        }
+                        sync |= (bufferInfo.flags & MediaCodec.BUFFER_FLAG_SYNC_FRAME) != 0;
+                        int len = mPpsSps.length + bufferInfo.size;
+                        if (len > h264.length) {
+                            h264 = new byte[len];
+                        }
+                        if (sync) {
+                            System.arraycopy(mPpsSps, 0, h264, 0, mPpsSps.length);
+                            outputBuffer.get(h264, mPpsSps.length, bufferInfo.size);
+                            mPusher.push(h264, 0, mPpsSps.length + bufferInfo.size, bufferInfo.presentationTimeUs / 1000, 1);
+                            writeBuffer(h264, mPpsSps.length + bufferInfo.size);
+                            if (BuildConfig.DEBUG)
+                                Log.i(TAG, String.format("push i video stamp:%d", bufferInfo.presentationTimeUs / 1000));
                         } else {
-                            mPpsSps = new byte[0];
+                            outputBuffer.get(h264, 0, bufferInfo.size);
+                            mPusher.push(h264, 0, bufferInfo.size, bufferInfo.presentationTimeUs / 1000, 1);
+                            writeBuffer(h264, bufferInfo.size);
+                            if (BuildConfig.DEBUG)
+                                Log.i(TAG, String.format("push video stamp:%d", bufferInfo.presentationTimeUs / 1000));
                         }
                     }
-                    sync |= (bufferInfo.flags & MediaCodec.BUFFER_FLAG_SYNC_FRAME) != 0;
-                    int len = mPpsSps.length + bufferInfo.size;
-                    if (len > h264.length) {
-                        h264 = new byte[len];
-                    }
-                    if (sync) {
-                        System.arraycopy(mPpsSps, 0, h264, 0, mPpsSps.length);
-                        outputBuffer.get(h264, mPpsSps.length, bufferInfo.size);
-                        mPusher.push(h264, 0, mPpsSps.length + bufferInfo.size, bufferInfo.presentationTimeUs / 1000, 1);
-                        if (BuildConfig.DEBUG)
-                            Log.i(TAG, String.format("push i video stamp:%d", bufferInfo.presentationTimeUs / 1000));
-                    } else {
-                        outputBuffer.get(h264, 0, bufferInfo.size);
-                        mPusher.push(h264, 0, bufferInfo.size, bufferInfo.presentationTimeUs / 1000, 1);
-                        if (BuildConfig.DEBUG)
-                            Log.i(TAG, String.format("push video stamp:%d", bufferInfo.presentationTimeUs / 1000));
-                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    mMediaCodec.releaseOutputBuffer(outputBufferIndex, false);
                 }
-
-                mMediaCodec.releaseOutputBuffer(outputBufferIndex, false);
             }
         }
         while (mVideoStarted);
     }
+
+
+    private void writeBuffer(byte[]buffer,int size) throws IOException {
+        if (true) return;
+        FileOutputStream fos = new FileOutputStream(new File(mContext.getExternalFilesDir(null),"stream.bin"), true);
+        fos.write(buffer,0,size);
+        fos.close();
+    }
+
 
     @Override
     public void onVideoStop() {
@@ -243,7 +261,7 @@ Video bitrate 384 Kbps 2 Mbps 4 Mbps 10 Mbps
             e.printStackTrace();
             throw new IllegalStateException(e);
         }
-        MediaFormat mediaFormat = MediaFormat.createVideoFormat("video/avc", mWidth, mHeight);
+        MediaFormat mediaFormat = MediaFormat.createVideoFormat(mMime, mWidth, mHeight);
         mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, bitrate);
         mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, framerate);
         mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, info.mColorFormat);

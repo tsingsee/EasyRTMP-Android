@@ -134,25 +134,18 @@ public class SettingActivity extends AppCompatActivity {
         });
 
 
-        CheckBox x264enc = (CheckBox) findViewById(R.id.use_x264_encode);
+        CheckBox x264enc = findViewById(R.id.use_x264_encode);
         x264enc.setChecked(PreferenceManager.getDefaultSharedPreferences(this).getBoolean("key-sw-codec", false));
+        x264enc.setOnCheckedChangeListener((buttonView, isChecked) -> PreferenceManager.getDefaultSharedPreferences(SettingActivity.this).edit().putBoolean("key-sw-codec", isChecked).apply());
 
-        x264enc.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                PreferenceManager.getDefaultSharedPreferences(SettingActivity.this).edit().putBoolean("key-sw-codec", isChecked).apply();
-            }
-        });
 
-        CheckBox enable_video_overlay = (CheckBox) findViewById(R.id.enable_video_overlay);
+        CheckBox enable_hevc_cb = findViewById(R.id.enable_hevc);
+        enable_hevc_cb.setChecked(PreferenceManager.getDefaultSharedPreferences(this).getBoolean("key-hevc-codec", false));
+        enable_hevc_cb.setOnCheckedChangeListener((buttonView, isChecked) -> PreferenceManager.getDefaultSharedPreferences(SettingActivity.this).edit().putBoolean("key-hevc-codec", isChecked).apply());
+
+        CheckBox enable_video_overlay = findViewById(R.id.enable_video_overlay);
         enable_video_overlay.setChecked(PreferenceManager.getDefaultSharedPreferences(this).getBoolean("key_enable_video_overlay", false));
-
-        enable_video_overlay.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                PreferenceManager.getDefaultSharedPreferences(SettingActivity.this).edit().putBoolean("key_enable_video_overlay", isChecked).apply();
-            }
-        });
+        enable_video_overlay.setOnCheckedChangeListener((buttonView, isChecked) -> PreferenceManager.getDefaultSharedPreferences(SettingActivity.this).edit().putBoolean("key_enable_video_overlay", isChecked).apply());
 
 
         RadioGroup push_content = findViewById(R.id.push_content);

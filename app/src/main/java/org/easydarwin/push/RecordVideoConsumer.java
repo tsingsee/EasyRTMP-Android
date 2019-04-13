@@ -6,7 +6,6 @@ import android.preference.PreferenceManager;
 import org.easydarwin.muxer.EasyMuxer;
 import org.easydarwin.sw.TxtOverlay;
 
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -16,9 +15,9 @@ public class RecordVideoConsumer implements VideoConsumerWrapper {
     private TxtOverlay overlay;
     private final Context context;
 
-    public RecordVideoConsumer(Context context, EasyMuxer muxer) {
+    public RecordVideoConsumer(Context context, String mime, EasyMuxer muxer) {
         this.context = context;
-        consumer = new HWConsumer(context, null);
+        consumer = new HWConsumer(context,  mime ,null);
         consumer.setMuxer(muxer);
     }
 
