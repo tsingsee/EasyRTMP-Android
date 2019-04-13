@@ -175,7 +175,7 @@ public class HWConsumer extends Thread implements VideoConsumer {
                         if (sync) {
                             System.arraycopy(mPpsSps, 0, h264, 0, mPpsSps.length);
                             outputBuffer.get(h264, mPpsSps.length, bufferInfo.size);
-                            mPusher.push(h264, 0, mPpsSps.length + bufferInfo.size, bufferInfo.presentationTimeUs / 1000, 1);
+                            mPusher.push(h264, 0, mPpsSps.length + bufferInfo.size, bufferInfo.presentationTimeUs / 1000, 2);
                             writeBuffer(h264, mPpsSps.length + bufferInfo.size);
                             if (BuildConfig.DEBUG)
                                 Log.i(TAG, String.format("push i video stamp:%d", bufferInfo.presentationTimeUs / 1000));

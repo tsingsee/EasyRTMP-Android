@@ -65,15 +65,17 @@ public class SWConsumer extends Thread implements VideoConsumer {
                 TimedBuffer tb = yuvs.take();
                 byte[] data = tb.buffer;
                 long begin = System.currentTimeMillis();
+                boolean keyFrame = false;
                 r = x264.encode(data, 0, h264, 0, outLen, keyFrm);
                 if (r > 0) {
+                    keyFrame = keyFrm[0] == 1;
                     Log.i(TAG, String.format("encode spend:%d ms. keyFrm:%d", System.currentTimeMillis() - begin, keyFrm[0]));
 //                                newBuf = new byte[outLen[0]];
 //                                System.arraycopy(h264, 0, newBuf, 0, newBuf.length);
                 }
                 keyFrm[0] = 0;
                 yuv_caches.offer(data);
-                mPusher.push(h264, 0, outLen[0], tb.time, 1);
+                mPusher.push(h264, 0, outLen[0], tb.time, keyFrame?2:1);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
