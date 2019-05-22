@@ -52,11 +52,10 @@ public class X264Encoder {
     private static native int encode(long handle, byte[] buffer, int offset, byte[] out, int outOffset, int[] outLen, byte[] keyFrame);
 
     private static native void close(long handle);
-//
+
 //    x264_ecoder_handle x264_ecoder_init(int nWidth, int nHeight, int bitRate, x264_PixelFormat pixelFromat);
 //
-//    int x264_enocode(x264_ecoder_handle handle, unsigned char*pYUVData,
-//                     unsigned int length, unsigned char*outData, int*nLen, unsigned char*keyFrame);
+//    int x264_enocode(x264_ecoder_handle handle, unsigned char*pYUVData, unsigned int length, unsigned char*outData, int*nLen, unsigned char*keyFrame);
 //
 //    void x264_close(x264_ecoder_handle handle);
 }

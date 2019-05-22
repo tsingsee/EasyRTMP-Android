@@ -19,12 +19,13 @@
         app:frameAspectRatioHeight="1"
         app:frameSize="0.75"
         app:frameThickness="2dp"
-        app:maskColor="@color/colorPrimaryDark"/>
+        app:maskColor="#66000000"/>
 
     <ImageView
         android:layout_width="56dp"
-        android:src="@drawable/close_btn"
+        android:src="@drawable/com_back"
         android:padding="18dp"
         android:onClick="onClose"
         android:layout_height="56dp" />
+
 </FrameLayout>

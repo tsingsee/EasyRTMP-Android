@@ -18,14 +18,13 @@ import com.google.zxing.Result;
 
 public class ScanQRActivity extends AppCompatActivity  {
 
-
-
     private CodeScanner mCodeScanner;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_scan_qr);
+
         CodeScannerView scannerView = findViewById(R.id.scanner_view);
         mCodeScanner = new CodeScanner(this, scannerView);
         mCodeScanner.setScanMode(ScanMode.SINGLE);
@@ -38,32 +37,35 @@ public class ScanQRActivity extends AppCompatActivity  {
                     public void run() {
                         Toast.makeText(ScanQRActivity.this, result.getText(), Toast.LENGTH_SHORT).show();
 
-
                         String orignalText = result.getText();
                         if (!TextUtils.isEmpty(orignalText)){
                             final String text = orignalText.trim();
-                            if (text.toLowerCase().startsWith("rtmp://")){
-                                new AlertDialog.Builder(ScanQRActivity.this).setTitle("扫描到了推送地址").setMessage(text).setPositiveButton("使用该地址推送", new DialogInterface.OnClickListener() {
-                                    @Override
-                                    public void onClick(DialogInterface dialog, int which) {
-                                        Intent intent = new Intent();
-                                        intent.putExtra("text", text);
-                                        setResult(RESULT_OK, intent);
-                                        finish();
-//                                        overridePendingTransition(0,R.anim.activity_close_exit);
-                                    }
-                                }).setNegativeButton("重新扫描", new DialogInterface.OnClickListener() {
-                                    @Override
-                                    public void onClick(DialogInterface dialog, int which) {
-                                        mCodeScanner.startPreview();
-                                    }
-                                }).show();
+                            if (text.toLowerCase().startsWith("rtmp://")) {
+                                new AlertDialog
+                                        .Builder(ScanQRActivity.this)
+                                        .setTitle("扫描到了推送地址")
+                                        .setMessage(text)
+                                        .setPositiveButton("使用该地址推送", new DialogInterface.OnClickListener() {
+                                            @Override
+                                            public void onClick(DialogInterface dialog, int which) {
+                                                Intent intent = new Intent();
+                                                intent.putExtra("text", text);
+                                                setResult(RESULT_OK, intent);
+                                                finish();
+                                            }
+                                        }).setNegativeButton("重新扫描", new DialogInterface.OnClickListener() {
+                                            @Override
+                                            public void onClick(DialogInterface dialog, int which) {
+                                                mCodeScanner.startPreview();
+                                            }
+                                        }).show();
                             }
                         }
                     }
                 });
             }
         });
+
         scannerView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -86,13 +88,10 @@ public class ScanQRActivity extends AppCompatActivity  {
 
     public void onClose(View view) {
         finish();
-//        overridePendingTransition(0,R.anim.activity_close_exit);
     }
 
     @Override
     public void onBackPressed() {
         super.onBackPressed();
-
-//        overridePendingTransition(0,R.anim.activity_close_exit);
     }
 }

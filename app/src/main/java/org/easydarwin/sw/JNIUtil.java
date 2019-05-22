@@ -8,7 +8,6 @@ public class JNIUtil {
         System.loadLibrary("Utils");
     }
 
-
     /**
      * 旋转1个字节为单位的矩阵
      *
@@ -36,9 +35,6 @@ public class JNIUtil {
     }
 
     private static native void callMethod(String methodName, Object[] returnValue, Object... params);
-
-
-
 
     /**
      * 0 NULL,
@@ -74,7 +70,6 @@ public class JNIUtil {
      */
     public static native void Android420ToABGR(byte[] yuv, byte[] argb, int width, int height, int mode);
 
-
     public static native void ARGBToRGB24(byte[] argb, byte[] rgb, int width, int height);
 
     /**
@@ -95,10 +90,7 @@ public class JNIUtil {
      * @param rotation   "rotation" can be 0, 90, 180 or 270.
      * @param mode       0:420,1:YV12,2:NV21,3:NV12
      */
-    public static native void ConvertToI420
-    (byte[] src, byte[] dst, int width, int height, int cropX, int cropY,
-     int cropWidth, int cropHeight, int rotation, int mode);
-
+    public static native void ConvertToI420(byte[] src, byte[] dst, int width, int height, int cropX, int cropY, int cropWidth, int cropHeight, int rotation, int mode);
 
     /**
      * Convert camera sample to I420 with cropping, rotation and vertical flip.
@@ -109,8 +101,7 @@ public class JNIUtil {
      * @param height
      * @param mode   0:420,1:YV12,2:NV21,3:NV12
      */
-    public static native void ConvertFromI420
-    (byte[] src, byte[] dst, int width, int height, int mode);
+    public static native void ConvertFromI420(byte[] src, byte[] dst, int width, int height, int mode);
 
     /**
      * I420压缩.
@@ -123,7 +114,5 @@ public class JNIUtil {
      * @param dstHeight
      * @param mode      0:Point sample; Fastest.<p>1:Filter horizontally only.<p>2:Faster than box, but lower quality scaling down.<p>3:Highest quality.
      */
-    public static native void I420Scale
-    (byte[] src, byte[] dst, int width, int height, int dstWidth, int dstHeight, int mode);
-
+    public static native void I420Scale(byte[] src, byte[] dst, int width, int height, int dstWidth, int dstHeight, int mode);
 }

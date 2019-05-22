@@ -3,9 +3,10 @@ package org.easydarwin.push;
 import android.content.Context;
 
 /**
+ * 推流器
+ *
  * Created by john on 2017/5/6.
  */
-
 public interface Pusher {
 
     public void stop() ;
@@ -15,6 +16,5 @@ public interface Pusher {
     public  void initPush(final String url, final Context context, final InitCallback callback);
 
     public  void push(byte[] data, int offset, int length, long timestamp, int type);
-
     public  void push(byte[] data, long timestamp, int type);
 }
