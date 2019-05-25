@@ -4,7 +4,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
@@ -28,9 +28,21 @@
 
         </android.support.v7.widget.Toolbar>
 
+        <TextView
+            android:text="Copyright @ Open.TSINGSEE.com"
+            android:layout_height="48dp"
+            android:layout_width="match_parent"
+            android:gravity="center"
+            android:id="@+id/textView3"
+            android:background="@color/colorTheme"
+            android:textColor="#FFFFFF"
+            android:layout_alignParentBottom="true"/>
+
         <ScrollView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:layout_above="@id/textView3"
+            android:layout_below="@id/main_toolbar">
 
             <android.support.constraint.ConstraintLayout
                 android:layout_width="match_parent"
@@ -190,10 +202,10 @@
                     app:layout_constraintLeft_toLeftOf="parent"
                     android:layout_marginLeft="16dp"
                     android:layout_marginEnd="16dp"
+                    android:gravity="center"
                     android:id="@+id/android_player_pro_title"
-                    android:layout_marginTop="8dp"
                     app:layout_constraintRight_toLeftOf="@+id/guideline"
-                    android:layout_height="wrap_content" />
+                    android:layout_height="40dp" />
 
                 <ImageView
                     android:id="@+id/imageView_player_pro_ios"
@@ -215,25 +227,13 @@
                     app:layout_constraintRight_toRightOf="parent"
                     android:layout_marginLeft="16dp"
                     android:layout_marginEnd="16dp"
-                    android:layout_marginTop="8dp"
-                    app:layout_constraintLeft_toRightOf="@+id/guideline"
-                    android:layout_height="wrap_content" />
-
-                <TextView
-                    android:text="Copyright @ Open.TSINGSEE.com"
-                    android:layout_height="40dp"
-                    android:layout_width="0dp"
                     android:gravity="center"
-                    android:id="@+id/textView3"
-                    android:background="@color/colorTheme"
-                    android:textColor="#FFFFFF"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintTop_toBottomOf="@+id/android_player_pro_title"
-                    app:layout_constraintLeft_toLeftOf="parent"
-                    android:layout_marginTop="16dp"
-                    app:layout_constraintRight_toRightOf="parent" />
+                    app:layout_constraintLeft_toRightOf="@+id/guideline"
+                    android:layout_height="40dp" />
+
+
             </android.support.constraint.ConstraintLayout>
         </ScrollView>
 
-    </LinearLayout>
+    </RelativeLayout>
 </layout>

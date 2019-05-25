@@ -57,7 +57,7 @@ public class AboutActivity extends AppCompatActivity implements Toolbar.OnMenuIt
         binding.version.append(spannableString);
         binding.version.append(")");
 
-        binding.serverTitle.setText("-EasyDSS RTMP流媒体服务器：\n");
+        binding.serverTitle.setText("EasyDSS RTMP流媒体服务器：\n");
         binding.serverTitle.setMovementMethod(LinkMovementMethod.getInstance());
 
         spannableString = new SpannableString("http://www.easydss.com");
@@ -72,7 +72,7 @@ public class AboutActivity extends AppCompatActivity implements Toolbar.OnMenuIt
 
         binding.serverTitle.append(spannableString);
 
-        binding.playerTitle.setText("-EasyPlayerPro全功能播放器：\n");
+        binding.playerTitle.setText("EasyPlayerPro全功能播放器：\n");
         binding.playerTitle.setMovementMethod(LinkMovementMethod.getInstance());
         spannableString = new SpannableString("https://github.com/EasyDSS/EasyPlayerPro");
         //设置下划线文字
