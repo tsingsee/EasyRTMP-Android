@@ -41,7 +41,7 @@ android {
 
     android.applicationVariants.all { variant ->
         variant.outputs.all {
-            outputFileName = variant.flavorName + "-" + variant.versionCode + "-" + variant.versionName + ".apk"
+            outputFileName = "EasyRTMP-" + variant.versionCode + "-" + variant.versionName + ".apk"
         }
     }
 
