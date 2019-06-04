@@ -3,26 +3,24 @@ package org.easydarwin.muxer;
 import android.content.Context;
 
 import org.easydarwin.encode.HWConsumer;
-import org.easydarwin.encode.SWConsumer;
 import org.easydarwin.encode.VideoConsumer;
-import org.easydarwin.encode.VideoConsumerWrapper;
 import org.easydarwin.sw.TxtOverlay;
 import org.easydarwin.util.SPUtil;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class RecordVideoConsumer implements VideoConsumerWrapper {
+public class RecordVideoConsumer implements VideoConsumer {
 
     VideoConsumer consumer;
 
     private TxtOverlay overlay;
     private final Context context;
 
-    public RecordVideoConsumer(Context context, String mime, boolean swCodec, EasyMuxer muxer) {
+    public RecordVideoConsumer(Context context, String mime, EasyMuxer muxer) {
         this.context = context;
 
-        consumer = swCodec ? new SWConsumer(context, null) : new HWConsumer(context, mime, null);
+        consumer = new HWConsumer(context, mime, null);
         consumer.setMuxer(muxer);
     }
 

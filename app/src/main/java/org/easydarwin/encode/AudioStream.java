@@ -84,7 +84,7 @@ public class AudioStream {
         }
     }
 
-    public void addPusher(Pusher pusher){
+    public void addPusher(Pusher pusher) {
         boolean shouldStart =false;
 
         synchronized (this) {
@@ -268,7 +268,7 @@ public class AudioStream {
 
                     Iterator<Pusher> it = p.iterator();
 
-                    while (it.hasNext()){
+                    while (it.hasNext()) {
                         Pusher ps = it.next();
                         ps.push(mBuffer.array(), 0, mBufferInfo.size + 7, mBufferInfo.presentationTimeUs / 1000, 0);
                     }

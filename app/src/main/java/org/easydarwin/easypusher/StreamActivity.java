@@ -781,7 +781,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
     public void onStartOrStopPush(View view) {
         ImageView ib = findViewById(R.id.streaming_activity_push);
 
-        if (!mMediaStream.isStreaming()) {
+        if (mMediaStream != null && !mMediaStream.isStreaming()) {
             String url = Config.getServerURL(this);
 
             try {

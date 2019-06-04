@@ -9,7 +9,6 @@ import android.media.MediaCodecInfo;
 import android.media.MediaCodecList;
 import android.media.MediaFormat;
 import android.os.Build;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
@@ -52,46 +51,40 @@ import static org.easydarwin.easypusher.EasyApplication.BUS;
  * 摄像头实时数据采集，并调用相关编码器
  * */
 public class MediaStream {
-
-    public static CodecInfo info = new CodecInfo();
-
     private static final String TAG = "MediaStream";
     private static final int SWITCH_CAMERA = 11;
 
-    int width = 1280, height = 720;
+    public static CodecInfo info = new CodecInfo();
 
     private final boolean enableVideo;
-    boolean isPushStream = false;// 是否要推送数据
-
     private boolean isCameraBack = true;
-    private int displayRotationDegree;
+    private boolean mSWCodec, mHevc;    // mSWCodec是否软编码, mHevc是否H265
+
+    private String recordPath;          // 录像地址
+    boolean isPushStream = false;       // 是否要推送数据
+    private int displayRotationDegree;  // 旋转角度
 
     private Context mApplicationContext;
     WeakReference<SurfaceTexture> mSurfaceHolderRef;
 
-    private boolean mSWCodec, mHevc;
-
-    Camera mCamera;
-    int mCameraId = Camera.CameraInfo.CAMERA_FACING_BACK;
-
     private VideoConsumer mVC, mRecordVC;
-    AudioStream audioStream;
+    private AudioStream audioStream;
     private EasyMuxer mMuxer;
     Pusher mEasyPusher;
+    private byte[] i420_buffer;
+
+    private int frameWidth;
+    private int frameHeight;
+    int width = 1280, height = 720;
+
+    Camera mCamera;
+    int mCameraId = Camera.CameraInfo.CAMERA_FACING_BACK;// 默认后摄像头
+    private Camera.CameraInfo camInfo;
+    private Camera.Parameters parameters;
+    Camera.PreviewCallback previewCallback;
 
     private final HandlerThread mCameraThread;
     private final Handler mCameraHandler;
-
-    private String recordPath = Environment.getExternalStorageDirectory().getPath();
-
-    private byte[] i420_buffer;
-    private int frameWidth;
-    private int frameHeight;
-
-    private Camera.CameraInfo camInfo;
-    private Camera.Parameters parameters;
-
-    Camera.PreviewCallback previewCallback;
 
     /**
      * 切换摄像头的线程
@@ -101,11 +94,8 @@ public class MediaStream {
         public void run() {
             int cameraCount;
 
-            if (isCameraBack) {
-                isCameraBack = false;
-            } else {
-                isCameraBack = true;
-            }
+            // 调换前后摄像头
+            isCameraBack = !isCameraBack;
 
             if (!enableVideo)
                 return;
@@ -179,7 +169,8 @@ public class MediaStream {
 
         this.enableVideo = enableVideo;
 
-        if (enableVideo)
+        if (enableVideo) {
+            // data：摄像头预览的视频流数据
             previewCallback = (data, camera) -> {
                 if (data == null)
                     return;
@@ -206,6 +197,7 @@ public class MediaStream {
                 mVC.onVideo(data, 0);
                 mCamera.addCallbackBuffer(data);
             };
+        }
     }
 
     /**
@@ -427,9 +419,21 @@ public class MediaStream {
             frameHeight = frameRotate ? width : height;
 
             if (mSWCodec) {
-                mVC = new ClippableVideoConsumer(mApplicationContext, new SWConsumer(mApplicationContext, mEasyPusher), frameWidth, frameHeight);
+                SWConsumer sw = new SWConsumer(mApplicationContext, mEasyPusher);
+
+                mVC = new ClippableVideoConsumer(mApplicationContext,
+                        sw,
+                        frameWidth,
+                        frameHeight);
             } else {
-                mVC = new ClippableVideoConsumer(mApplicationContext, new HWConsumer(mApplicationContext, mHevc ? MediaFormat.MIMETYPE_VIDEO_HEVC : MediaFormat.MIMETYPE_VIDEO_AVC, mEasyPusher), frameWidth, frameHeight);
+                HWConsumer hw = new HWConsumer(mApplicationContext,
+                        mHevc ? MediaFormat.MIMETYPE_VIDEO_HEVC : MediaFormat.MIMETYPE_VIDEO_AVC,
+                        mEasyPusher);
+
+                mVC = new ClippableVideoConsumer(mApplicationContext,
+                        hw,
+                        frameWidth,
+                        frameHeight);
             }
 
             mVC.onVideoStart(frameWidth, frameHeight);
@@ -522,7 +526,6 @@ public class MediaStream {
 
         mRecordVC = new RecordVideoConsumer(mApplicationContext,
                 mHevc ? MediaFormat.MIMETYPE_VIDEO_HEVC : MediaFormat.MIMETYPE_VIDEO_AVC,
-                mSWCodec,
                 mMuxer);
         mRecordVC.onVideoStart(frameWidth, frameHeight);
 
@@ -590,7 +593,7 @@ public class MediaStream {
 
     public static ArrayList<CodecInfo> listEncoders(String mime) {
         // 可能有多个编码库，都获取一下
-        ArrayList<CodecInfo> codecInfos = new ArrayList<CodecInfo>();
+        ArrayList<CodecInfo> codecInfos = new ArrayList<>();
         int numCodecs = MediaCodecList.getCodecCount();
 
         // int colorFormat = 0;

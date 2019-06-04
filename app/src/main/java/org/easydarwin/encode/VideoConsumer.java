@@ -2,8 +2,6 @@ package org.easydarwin.encode;
 
 import org.easydarwin.muxer.EasyMuxer;
 
-import java.io.IOException;
-
 /**
  * Created by apple on 2017/5/13.
  */

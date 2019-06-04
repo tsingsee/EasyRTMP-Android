@@ -99,7 +99,7 @@ public class EasyRTMP implements Pusher {
                 }
             }}, videoCodec, fps, 8000, 1);
 
-        Log.d(TAG, "startpush end");
+        Log.d(TAG, "start push end");
     }
 
     public void push(byte[] data, long timestamp, int type) {

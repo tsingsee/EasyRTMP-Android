@@ -28,7 +28,6 @@ public class SWConsumer extends Thread implements VideoConsumer {
 
     private final Pusher mPusher;
     private volatile boolean mVideoStarted;
-    private byte []yv12;
 
     public SWConsumer(Context context, Pusher pusher) {
         this.context = context;
@@ -62,9 +61,9 @@ public class SWConsumer extends Thread implements VideoConsumer {
 
     @Override
     public void run() {
-        byte[]h264 = new byte[mWidth*mHeight*3/2];
+        byte[] h264 = new byte[mWidth * mHeight * 3 / 2];
         byte[] keyFrm = new byte[1];
-        int []outLen = new int[1];
+        int[] outLen = new int[1];
 
         do {
             try {
@@ -84,7 +83,10 @@ public class SWConsumer extends Thread implements VideoConsumer {
 
                 keyFrm[0] = 0;
                 yuv_caches.offer(data);
-                mPusher.push(h264, 0, outLen[0], tb.time, keyFrame?2:1);
+
+                if (mPusher != null) {
+                    mPusher.push(h264, 0, outLen[0], tb.time, keyFrame?2:1);
+                }
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

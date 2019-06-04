@@ -10,7 +10,7 @@ import org.easydarwin.util.SPUtil;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class ClippableVideoConsumer implements VideoConsumerWrapper {
+public class ClippableVideoConsumer implements VideoConsumer {
 
     private final VideoConsumer consumer;
 
@@ -55,8 +55,7 @@ public class ClippableVideoConsumer implements VideoConsumerWrapper {
         JNIUtil.I420Scale(data, i420_buffer2, originalWidth, originalHeight, width, height,0);
 
         if (SPUtil.getEnableVideoOverlay(context)) {
-            String txt = String.format("drawtext=fontfile=" + context.getFileStreamPath("SIMYOU.ttf") + ": text='%s%s':x=(w-text_w)/2:y=H-60 :fontcolor=white :box=1:boxcolor=0x00000000@0.3", "EasyPusher", new SimpleDateFormat("yyyy-MM-ddHHmmss").format(new Date()));
-            txt =  new SimpleDateFormat("yy-MM-dd HH:mm:ss SSS").format(new Date());
+            String txt =  new SimpleDateFormat("yy-MM-dd HH:mm:ss SSS").format(new Date());
             overlay.overlay(i420_buffer2, txt);
         }
 
