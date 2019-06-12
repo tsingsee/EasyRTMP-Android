@@ -20,7 +20,7 @@ public class ClippableVideoConsumer implements VideoConsumer {
     private final Context context;
     private TxtOverlay overlay;
 
-    private int originalWidth,originalHeight;
+    private int originalWidth, originalHeight;
     private byte[] i420_buffer2;
 
     /**
@@ -31,12 +31,12 @@ public class ClippableVideoConsumer implements VideoConsumer {
      * @param height    clipped video height
      */
     public ClippableVideoConsumer(Context context, VideoConsumer consumer, int width, int height) {
+        this.context = context;
         this.consumer = consumer;
         this.width = width;
         this.height = height;
-        this.context = context;
 
-        i420_buffer2 = new byte[width*height * 3 / 2];
+        i420_buffer2 = new byte[width * height * 3 / 2];
     }
 
     @Override

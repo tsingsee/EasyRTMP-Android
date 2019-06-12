@@ -16,7 +16,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 /**
- * 使用MediaCodec 合成音视频
+ * 使用 MediaMuxer 合成音视频
  *
  * Created by John on 2017/1/10.
  */
@@ -46,13 +46,16 @@ public class EasyMuxer {
 
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                // 初始化MediaMuxer
                 mux = new MediaMuxer(path + "-" + index++ + ".mp4", MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
             }
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
             mMuxer = (MediaMuxer) mux;
-            EasyApplication.BUS.post(new StartRecord());// 通知UI 开始录像
+
+            // 通知UI 开始录像
+            EasyApplication.BUS.post(new StartRecord());
         }
     }
 
@@ -62,6 +65,7 @@ public class EasyMuxer {
             throw new RuntimeException("already add all tracks");
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+            // 添加音频/视频的通道，此操作必须在mMuxer start方法之前调用:
             int track = mMuxer.addTrack(format);
 
             if (VERBOSE)
@@ -107,6 +111,13 @@ public class EasyMuxer {
             outputBuffer.limit(bufferInfo.offset + bufferInfo.size);
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                /*
+                * 将H.264和AAC数据分别同时写入到MP4文件
+                *   BufferInfo对象的值一定要设置正确：
+                *       info.size 必须填入数据的大小
+                *       info.flags 需要给出是否为同步帧/关键帧
+                *       info.presentationTimeUs 必须给出正确的时间戳，注意单位是 us
+                * */
                 mMuxer.writeSampleData(isVideo ? mVideoTrackIndex : mAudioTrackIndex, outputBuffer, bufferInfo);
             }
 
@@ -124,6 +135,7 @@ public class EasyMuxer {
                 if (VERBOSE)
                     Log.i(TAG, String.format("record file reach expiration.create new file:" + index));
 
+                // 结束
                 mMuxer.stop();
                 mMuxer.release();
                 mMuxer = null;

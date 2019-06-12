@@ -8,9 +8,15 @@ import org.easydarwin.muxer.EasyMuxer;
 public interface VideoConsumer {
     void onVideoStart(int width, int height) ;
 
+    /*
+    * 传入原始视频数据，编码
+    * */
     int onVideo(byte []data, int format);
 
     void onVideoStop();
 
+    /*
+    * 添加视频合成器
+    * */
     void setMuxer(EasyMuxer muxer);
 }

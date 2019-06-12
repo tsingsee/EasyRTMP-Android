@@ -12,7 +12,7 @@ import org.easydarwin.util.SPUtil;
 import java.util.concurrent.ArrayBlockingQueue;
 
 /**
- * 视频软编码器
+ * X264Encoder视频软编码器
  *
  * Created by apple on 2017/5/13.
  */
@@ -29,35 +29,16 @@ public class SWConsumer extends Thread implements VideoConsumer {
     private final Pusher mPusher;
     private volatile boolean mVideoStarted;
 
+    final int millisPerFrame = 1000 / 20;
+    long lastPush = 0;
+
+    private ArrayBlockingQueue<TimedBuffer> yuvs = new ArrayBlockingQueue<TimedBuffer>(2);
+    private ArrayBlockingQueue<byte[]> yuv_caches = new ArrayBlockingQueue<byte[]>(10);
+
     public SWConsumer(Context context, Pusher pusher) {
         this.context = context;
         mPusher = pusher;
     }
-
-    @Override
-    public void onVideoStart(int width, int height) {
-        this.mWidth = width;
-        this.mHeight = height;
-
-        x264 = new X264Encoder();
-        int bitrate = 72 * 1000 + SPUtil.getBitrateKbps(context);
-        x264.create(width, height, 20, bitrate/1000);
-        mVideoStarted = true;
-        start();
-    }
-
-    class TimedBuffer {
-        byte[] buffer;
-        long time;
-
-        public TimedBuffer(byte[] data) {
-            buffer = data;
-            time = System.currentTimeMillis();
-        }
-    }
-
-    private ArrayBlockingQueue<TimedBuffer> yuvs = new ArrayBlockingQueue<TimedBuffer>(2);
-    private ArrayBlockingQueue<byte[]> yuv_caches = new ArrayBlockingQueue<byte[]>(10);
 
     @Override
     public void run() {
@@ -77,8 +58,8 @@ public class SWConsumer extends Thread implements VideoConsumer {
                 if (r > 0) {
                     keyFrame = keyFrm[0] == 1;
                     Log.i(TAG, String.format("encode spend:%d ms. keyFrm:%d", System.currentTimeMillis() - begin, keyFrm[0]));
-//                                newBuf = new byte[outLen[0]];
-//                                System.arraycopy(h264, 0, newBuf, 0, newBuf.length);
+//                    newBuf = new byte[outLen[0]];
+//                    System.arraycopy(h264, 0, newBuf, 0, newBuf.length);
                 }
 
                 keyFrm[0] = 0;
@@ -93,8 +74,17 @@ public class SWConsumer extends Thread implements VideoConsumer {
         } while (mVideoStarted);
     }
 
-    final int millisPerframe = 1000/20;
-    long lastPush = 0;
+    @Override
+    public void onVideoStart(int width, int height) {
+        this.mWidth = width;
+        this.mHeight = height;
+
+        x264 = new X264Encoder();
+        int bitrate = 72 * 1000 + SPUtil.getBitrateKbps(context);
+        x264.create(width, height, 20, bitrate/1000);
+        mVideoStarted = true;
+        start();
+    }
 
     @Override
     public int onVideo(byte[] data, int format) {
@@ -106,8 +96,10 @@ public class SWConsumer extends Thread implements VideoConsumer {
             long time = System.currentTimeMillis() - lastPush;
 
             if (time >= 0) {
-                time = millisPerframe - time;
-                if (time > 0) Thread.sleep(time / 2);
+                time = millisPerFrame - time;
+
+                if (time > 0)
+                    Thread.sleep(time / 2);
             }
 
             byte[] buffer = yuv_caches.poll();
@@ -136,7 +128,7 @@ public class SWConsumer extends Thread implements VideoConsumer {
             mVideoStarted = false;
 
             try {
-                interrupt();
+                interrupt();// 中断线程
                 join();
             } catch (InterruptedException e) {
                 e.printStackTrace();
@@ -153,5 +145,15 @@ public class SWConsumer extends Thread implements VideoConsumer {
     @Override
     public void setMuxer(EasyMuxer muxer) {
 
+    }
+
+    class TimedBuffer {
+        byte[] buffer;
+        long time;
+
+        public TimedBuffer(byte[] data) {
+            buffer = data;
+            time = System.currentTimeMillis();
+        }
     }
 }

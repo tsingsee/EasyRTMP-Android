@@ -222,7 +222,8 @@ public class MediaStream {
 
         try {
             mSWCodec = SPUtil.getswCodec(mApplicationContext);
-            mCamera = Camera.open(mCameraId);
+
+            mCamera = Camera.open(mCameraId);// 初始化创建Camera实例对象
             mCamera.setErrorCallback((i, camera) -> {
                 throw new IllegalStateException("Camera Error:" + i);
             });
@@ -233,6 +234,8 @@ public class MediaStream {
 
             if (Util.getSupportResolution(mApplicationContext).size() == 0) {
                 StringBuilder stringBuilder = new StringBuilder();
+
+                // 查看支持的预览尺寸
                 List<Camera.Size> supportedPreviewSizes = parameters.getSupportedPreviewSizes();
 
                 for (Camera.Size str : supportedPreviewSizes) {
@@ -252,7 +255,7 @@ public class MediaStream {
                 cameraRotationOffset += 180;
 
             int rotate = (360 + cameraRotationOffset - displayRotationDegree) % 360;
-            parameters.setRotation(rotate);
+            parameters.setRotation(rotate); // 设置Camera预览方向
 //            parameters.setRecordingHint(true);
 
             ArrayList<CodecInfo> infos = listEncoders(mHevc ? MediaFormat.MIMETYPE_VIDEO_HEVC : MediaFormat.MIMETYPE_VIDEO_AVC);
@@ -266,8 +269,8 @@ public class MediaStream {
             }
 
 //            List<Camera.Size> sizes = parameters.getSupportedPreviewSizes();
+            parameters.setPreviewSize(width, height);// 设置预览尺寸
 
-            parameters.setPreviewSize(width, height);
             int[] ints = determineMaximumSupportedFramerate(parameters);
             parameters.setPreviewFpsRange(ints[0], ints[1]);
 
@@ -276,6 +279,7 @@ public class MediaStream {
             if (supportedFocusModes == null)
                 supportedFocusModes = new ArrayList<>();
 
+            // 自动对焦
             if (supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
                 parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
             } else if (supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
@@ -394,6 +398,7 @@ public class MediaStream {
                 // TextureView的
                 SurfaceTexture holder = mSurfaceHolderRef.get();
 
+                // SurfaceView传入上面创建的Camera对象
                 if (holder != null) {
                     mCamera.setPreviewTexture(holder);
                     Log.i(TAG, "setPreviewTexture");
@@ -451,30 +456,32 @@ public class MediaStream {
             return;
         }
 
+        // 关闭摄像头
         if (mCamera != null) {
             mCamera.stopPreview();
             mCamera.setPreviewCallbackWithBuffer(null);
-
             Log.i(TAG, "StopPreview");
         }
 
+        // 关闭音频采集和音频编码器
         if (audioStream != null) {
             audioStream.removePusher(mEasyPusher);
             audioStream.setMuxer(null);
-
             Log.i(TAG, "Stop AudioStream");
         }
 
+        // 关闭视频编码器
         if (mVC != null) {
             mVC.onVideoStop();
-
             Log.i(TAG, "Stop VC");
         }
 
+        // 关闭录像的编码器
         if (mRecordVC != null) {
             mRecordVC.onVideoStop();
         }
 
+        // 关闭音视频合成器
         if (mMuxer != null) {
             mMuxer.release();
             mMuxer = null;
@@ -593,7 +600,7 @@ public class MediaStream {
 
     public static ArrayList<CodecInfo> listEncoders(String mime) {
         // 可能有多个编码库，都获取一下
-        ArrayList<CodecInfo> codecInfos = new ArrayList<>();
+        ArrayList<CodecInfo> codecInfoList = new ArrayList<>();
         int numCodecs = MediaCodecList.getCodecCount();
 
         // int colorFormat = 0;
@@ -613,12 +620,12 @@ public class MediaStream {
                     CodecInfo ci = new CodecInfo();
                     ci.mName = name;
                     ci.mColorFormat = colorFormat;
-                    codecInfos.add(ci);
+                    codecInfoList.add(ci);
                 }
             }
         }
 
-        return codecInfos;
+        return codecInfoList;
     }
 
     /* ============================== private method ============================== */
@@ -636,6 +643,7 @@ public class MediaStream {
     }
 
     private static int getColorFormat(MediaCodecInfo codecInfo, String mimeType) {
+        // 在ByteBuffer模式下，视频缓冲区根据其颜色格式进行布局。
         MediaCodecInfo.CodecCapabilities capabilities = codecInfo.getCapabilitiesForType(mimeType);
         int[] cf = new int[capabilities.colorFormats.length];
         System.arraycopy(capabilities.colorFormats, 0, cf, 0, cf.length);

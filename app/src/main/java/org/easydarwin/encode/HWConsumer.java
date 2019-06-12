@@ -24,7 +24,7 @@ import static android.media.MediaCodecInfo.CodecCapabilities.COLOR_TI_FormatYUV4
 import static org.easydarwin.push.MediaStream.info;
 
 /**
- * 视频硬编码器
+ * MediaCodec视频硬编码器
  *
  * Created by apple on 2017/5/13.
  */
@@ -37,12 +37,17 @@ public class HWConsumer extends Thread implements VideoConsumer {
     private final Pusher mPusher;
     private int mHeight;
     private int mWidth;
+
     private MediaCodec mMediaCodec;
     private ByteBuffer[] inputBuffers;
     private ByteBuffer[] outputBuffers;
+
     private volatile boolean mVideoStarted;
     private MediaFormat newFormat;
     private byte[] yuv;
+
+    final int millisPerFrame = 1000 / 20;
+    long lastPush = 0;
 
     public HWConsumer(Context context, String mime, Pusher pusher) {
         mContext = context;
@@ -62,7 +67,9 @@ public class HWConsumer extends Thread implements VideoConsumer {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP + 1) {
             inputBuffers = outputBuffers = null;
         } else {
+            // 获取编码器的输入缓存inputBuffers
             inputBuffers = mMediaCodec.getInputBuffers();
+            // 获取编码器的输出缓存outputBuffers
             outputBuffers = mMediaCodec.getOutputBuffers();
         }
 
@@ -70,9 +77,6 @@ public class HWConsumer extends Thread implements VideoConsumer {
 
         mVideoStarted = true;
     }
-
-    final int millisPerframe = 1000 / 20;
-    long lastPush = 0;
 
     @Override
     public int onVideo(byte[] i420, int format) {
@@ -92,10 +96,11 @@ public class HWConsumer extends Thread implements VideoConsumer {
             long time = System.currentTimeMillis() - lastPush;
 
             if (time >= 0) {
-                time = millisPerframe - time;
+                time = millisPerFrame - time;
                 if (time > 0) Thread.sleep(time / 2);
             }
 
+            // 从input缓冲区队列申请empty buffer
             int bufferIndex = mMediaCodec.dequeueInputBuffer(0);
 
             if (bufferIndex >= 0) {
@@ -117,11 +122,16 @@ public class HWConsumer extends Thread implements VideoConsumer {
                     buffer = inputBuffers[bufferIndex];
                 }
 
-                buffer.clear();
-                buffer.put(data);
+                buffer.clear();     // 清除原来的内容以接收新的内容
+                buffer.put(data);   // 添加采集的原始视频数据
                 buffer.clear();
 
-                mMediaCodec.queueInputBuffer(bufferIndex, 0, data.length, System.nanoTime() / 1000, MediaCodec.BUFFER_FLAG_KEY_FRAME);
+                // 将要编解码的数据拷贝到empty buffer，然后放入input缓冲区队列
+                mMediaCodec.queueInputBuffer(bufferIndex,
+                        0,
+                        data.length,
+                        System.nanoTime() / 1000,
+                        MediaCodec.BUFFER_FLAG_KEY_FRAME);
             }
 
             if (time > 0)
@@ -224,6 +234,7 @@ public class HWConsumer extends Thread implements VideoConsumer {
                 } catch (IOException e) {
                     e.printStackTrace();
                 } finally {
+                    // 将缓冲器返回到编解码器
                     mMediaCodec.releaseOutputBuffer(outputBufferIndex, false);
                 }
             }
@@ -272,41 +283,31 @@ public class HWConsumer extends Thread implements VideoConsumer {
      * 初始化编码器
      */
     private void startMediaCodec()  {
-            /*
-            SD (Low quality) SD (High quality) HD 720p
-            1 HD 1080p
-            1
-            Video resolution 320 x 240 px 720 x 480 px 1280 x 720 px 1920 x 1080 px
-            Video frame rate 20 framePerSecond 30 framePerSecond 30 framePerSecond 30 framePerSecond
-            Video bitrate 384 Kbps 2 Mbps 4 Mbps 10 Mbps
-            */
-
-        int framerate = 20;
-
-//        if (width == 640 || height == 640) {
-//            bitrate = 2000000;
-//        } else if (width == 1280 || height == 1280) {
-//            bitrate = 4000000;
-//        } else {
-//            bitrate = 2 * width * height;
-//        }
-
+        int frameRate = 20;
         int bitrate = 72 * 1000 + SPUtil.getBitrateKbps(mContext);
 
         try {
+            // 1、选择出一个 MediaCodecInfo，初始化MediaCodec
             mMediaCodec = MediaCodec.createByCodecName(info.mName);
         } catch (IOException e) {
             e.printStackTrace();
             throw new IllegalStateException(e);
         }
 
+        // 配置编码器
         MediaFormat mediaFormat = MediaFormat.createVideoFormat(mMime, mWidth, mHeight);
         mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, bitrate);
-        mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, framerate);
+        mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, frameRate);
         mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, info.mColorFormat);
-        mediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1);
+        mediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1);//关键帧间隔时间 单位s
 
-        mMediaCodec.configure(mediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+        // 2、配置，进入Configured状态
+        mMediaCodec.configure(mediaFormat,
+                null,
+                null,
+                MediaCodec.CONFIGURE_FLAG_ENCODE);
+
+        // 3、start()进入到执行状态，编解码器立即处于Flushed子状态，它拥有所有的缓冲区。
         mMediaCodec.start();
 
         Bundle params = new Bundle();

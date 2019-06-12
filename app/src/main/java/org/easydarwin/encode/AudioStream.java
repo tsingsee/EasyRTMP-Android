@@ -21,9 +21,11 @@ import java.util.Iterator;
 import java.util.Set;
 
 /**
- * 音频硬编码器
+ * AudioRecord音频采集、MediaCodec硬编码
  * */
 public class AudioStream {
+    private static final String TAG = "AudioStream";
+
     private static AudioStream _this;
 
     private final Context context;
@@ -36,14 +38,13 @@ public class AudioStream {
 
     int mSamplingRateIndex = 0;
 
-    AudioRecord mAudioRecord;
-    MediaCodec mMediaCodec;
+    AudioRecord mAudioRecord;   // 底层的音频采集
+    MediaCodec mMediaCodec;     // 音频硬编码器
+
     private Thread mThread = null;
 
-    String TAG = "AudioStream";
-
     protected MediaCodec.BufferInfo mBufferInfo = new MediaCodec.BufferInfo();
-    protected ByteBuffer[] mBuffers = null;
+    protected ByteBuffer[] outputBuffers = null; // 编码后的数据
 
     Set<Pusher> sets = new HashSet<>();
 
@@ -72,6 +73,13 @@ public class AudioStream {
     private Thread mWriter;
     private MediaFormat newFormat;
 
+    public static synchronized AudioStream getInstance(Context context) {
+        if (_this == null)
+            _this = new AudioStream(context);
+
+        return _this;
+    }
+
     public AudioStream(Context context) {
         this.context = context;
         int i = 0;
@@ -84,8 +92,11 @@ public class AudioStream {
         }
     }
 
+    /*
+    * 添加推流器
+    * */
     public void addPusher(Pusher pusher) {
-        boolean shouldStart =false;
+        boolean shouldStart = false;
 
         synchronized (this) {
             if (sets.isEmpty())
@@ -98,6 +109,9 @@ public class AudioStream {
             startRecord();
     }
 
+    /*
+    * 删除推流器
+    * */
     public void removePusher(Pusher pusher){
         boolean shouldStop = false;
 
@@ -112,13 +126,9 @@ public class AudioStream {
             stop();
     }
 
-    public static synchronized AudioStream getInstance(Context context) {
-        if (_this == null)
-            _this = new AudioStream(context);
-
-        return _this;
-    }
-
+    /*
+    * 设置音频录像器
+    * */
     public synchronized void setMuxer(EasyMuxer muxer) {
         if (muxer != null) {
             if (newFormat != null)
@@ -135,6 +145,11 @@ public class AudioStream {
         if (mThread != null)
             return;
 
+        /**
+         * 3、开启一个子线程，不断从AudioRecord的缓冲区将音频数据读出来。
+         * 注意，这个过程一定要及时，否则就会出现“overrun”的错误，
+         * 该错误在音频开发中比较常见，意味着应用层没有及时地取走音频数据，导致内部的音频缓冲区溢出。
+         * */
         mThread = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -142,38 +157,79 @@ public class AudioStream {
                 int len, bufferIndex;
 
                 try {
-                    int bufferSize = AudioRecord.getMinBufferSize(samplingRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
-                    mAudioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, samplingRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, bufferSize);
-                    mMediaCodec = MediaCodec.createEncoderByType("audio/mp4a-latm");
+                    // 计算bufferSizeInBytes：int size = 采样率 x 位宽 x 通道数
+                    int bufferSize = AudioRecord.getMinBufferSize(samplingRate,
+                            AudioFormat.CHANNEL_IN_MONO,
+                            AudioFormat.ENCODING_PCM_16BIT);
+
+                    /*
+                    * 1、配置参数，初始化AudioRecord构造函数
+                    * audioSource：音频采集的输入源，DEFAULT（默认），VOICE_RECOGNITION（用于语音识别，等同于DEFAULT），MIC（由手机麦克风输入），VOICE_COMMUNICATION（用于VoIP应用）等等
+                    * sampleRateInHz：采样率，注意，目前44.1kHz是唯一可以保证兼容所有Android手机的采样率。
+                    * channelConfig：通道数的配置，CHANNEL_IN_MONO（单通道），CHANNEL_IN_STEREO（双通道）
+                    * audioFormat：配置“数据位宽”的,ENCODING_PCM_16BIT（16bit），ENCODING_PCM_8BIT（8bit）
+                    * bufferSizeInBytes：配置的是 AudioRecord 内部的音频缓冲区的大小，该缓冲区的值不能低于一帧“音频帧”（Frame）的大小
+                    * */
+                    mAudioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC,
+                            samplingRate,
+                            AudioFormat.CHANNEL_IN_MONO,
+                            AudioFormat.ENCODING_PCM_16BIT,
+                            bufferSize);
+
+                    /*
+                    * mp3为audio/mpeg, aac为audio/mp4a-latm, mp4为video/mp4v-es
+                    * */
+                    String encodeType = "audio/mp4a-latm";
+
+                    // 初始化编码器
+                    mMediaCodec = MediaCodec.createEncoderByType(encodeType);
 
                     MediaFormat format = new MediaFormat();
-                    format.setString(MediaFormat.KEY_MIME, "audio/mp4a-latm");
-                    format.setInteger(MediaFormat.KEY_BIT_RATE, bitRate);
-                    format.setInteger(MediaFormat.KEY_CHANNEL_COUNT, 1);
-                    format.setInteger(MediaFormat.KEY_SAMPLE_RATE, samplingRate);
+                    format.setString(MediaFormat.KEY_MIME, encodeType);
+                    format.setInteger(MediaFormat.KEY_BIT_RATE, bitRate);// 比特率
+                    format.setInteger(MediaFormat.KEY_CHANNEL_COUNT, 1);// 声道数
+                    format.setInteger(MediaFormat.KEY_SAMPLE_RATE, samplingRate);// 采样率
                     format.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC);
-                    format.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, BUFFER_SIZE);
+                    format.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, BUFFER_SIZE); // 作用于inputBuffer的大小
 
-                    mMediaCodec.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+                    mMediaCodec.configure(format,
+                            null,
+                            null,
+                            MediaCodec.CONFIGURE_FLAG_ENCODE);
+
                     mMediaCodec.start();
 
                     mWriter = new WriterThread();
                     mWriter.start();
+
+                    // 2、开始采集
                     mAudioRecord.startRecording();
+
+                    // 获取编码器的输入缓存inputBuffers
                     final ByteBuffer[] inputBuffers = mMediaCodec.getInputBuffers();
 
                     long presentationTimeUs = 0;
 
                     while (mThread != null) {
+                        // 从input缓冲区队列申请empty buffer
                         bufferIndex = mMediaCodec.dequeueInputBuffer(1000);
 
                         if (bufferIndex >= 0) {
                             inputBuffers[bufferIndex].clear();
+
+                            /*
+                            * 不断的读取采集到的声音数据，放进编码器的输入缓存inputBuffers中 进行编码
+                            *   audioBuffer 存储写入音频录制数据的缓冲区。
+                            *   sizeInBytes 请求的最大字节数。
+                            * public int read (ByteBuffer audioBuffer, int sizeInBytes)
+                            *  */
                             len = mAudioRecord.read(inputBuffers[bufferIndex], BUFFER_SIZE);
+
                             long timeUs = System.nanoTime() / 1000;
                             Log.i(TAG, String.format("audio: %d [%d] ", timeUs, timeUs - presentationTimeUs));
                             presentationTimeUs = timeUs;
 
+                            // 将要编解码的数据拷贝到empty buffer，然后放入input缓冲区队列
                             if (len == AudioRecord.ERROR_INVALID_OPERATION || len == AudioRecord.ERROR_BAD_VALUE) {
                                 mMediaCodec.queueInputBuffer(bufferIndex, 0, 0, presentationTimeUs, 0);
                             } else {
@@ -197,12 +253,14 @@ public class AudioStream {
                         }
                     }
 
+                    // 4、停止采集，释放资源。
                     if (mAudioRecord != null) {
                         mAudioRecord.stop();
                         mAudioRecord.release();
                         mAudioRecord = null;
                     }
 
+                    // 停止编码
                     if (mMediaCodec != null) {
                         mMediaCodec.stop();
                         mMediaCodec.release();
@@ -217,6 +275,9 @@ public class AudioStream {
         }
     }
 
+    /**
+     * 不断的从输出缓存中取出编码后的数据，然后push出去
+     * */
     private class WriterThread extends Thread {
         public WriterThread() {
             super("WriteAudio");
@@ -226,15 +287,19 @@ public class AudioStream {
         public void run() {
             int index;
 
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-
-            } else {
-                mBuffers = mMediaCodec.getOutputBuffers();
+            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.LOLLIPOP) {
+                // 获取编码器的输出缓存outputBuffers
+                outputBuffers = mMediaCodec.getOutputBuffers();
             }
 
             ByteBuffer mBuffer = ByteBuffer.allocate(10240);
 
             do {
+                /*
+                * 从output缓冲区队列申请编解码的buffer
+                * BufferInfo：用于存储ByteBuffer的信息
+                * TIMES_OUT：超时时间（在一个单独的线程专门取输出数据，为了避免CPU资源的浪费，需设置合适的值）
+                * */
                 index = mMediaCodec.dequeueOutputBuffer(mBufferInfo, 10000);
 
                 if (index >= 0) {
@@ -248,9 +313,10 @@ public class AudioStream {
                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
                         outputBuffer = mMediaCodec.getOutputBuffer(index);
                     } else {
-                        outputBuffer = mBuffers[index];
+                        outputBuffer = outputBuffers[index];
                     }
 
+                    // 合成音频
                     if (muxer != null)
                         muxer.pumpStream(outputBuffer, mBufferInfo, false);
 
@@ -262,20 +328,26 @@ public class AudioStream {
                     mBuffer.flip();
                     Collection<Pusher> p;
 
-                    synchronized (AudioStream.this){
+                    synchronized (AudioStream.this) {
                         p = sets;
                     }
 
                     Iterator<Pusher> it = p.iterator();
 
+                    // 推流
                     while (it.hasNext()) {
                         Pusher ps = it.next();
-                        ps.push(mBuffer.array(), 0, mBufferInfo.size + 7, mBufferInfo.presentationTimeUs / 1000, 0);
+                        ps.push(mBuffer.array(),
+                                0,
+                                mBufferInfo.size + 7,
+                                mBufferInfo.presentationTimeUs / 1000,
+                                0);
                     }
 
+                    // 处理完上面的步骤后再将该buffer放回到output缓冲区队列
                     mMediaCodec.releaseOutputBuffer(index, false);
                 } else if (index == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
-                    mBuffers = mMediaCodec.getOutputBuffers();
+                    outputBuffers = mMediaCodec.getOutputBuffers();
                 } else if (index == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                     synchronized (AudioStream.this) {
                         Log.v(TAG, "output format changed...");
@@ -285,7 +357,7 @@ public class AudioStream {
                             muxer.addTrack(newFormat, false);
                     }
                 } else if (index == MediaCodec.INFO_TRY_AGAIN_LATER) {
-//                    Log.v(TAG, "No buffer available...");
+                    Log.v(TAG, "No buffer available...");
                 } else {
                     Log.e(TAG, "Message: " + index);
                 }
@@ -293,6 +365,12 @@ public class AudioStream {
         }
     }
 
+    /**
+     * 添加ADTS头
+     *
+     * @param packet
+     * @param packetLen
+     */
     private void addADTStoPacket(byte[] packet, int packetLen) {
         packet[0] = (byte) 0xFF;
         packet[1] = (byte) 0xF1;

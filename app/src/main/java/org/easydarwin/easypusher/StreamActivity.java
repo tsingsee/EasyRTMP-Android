@@ -736,7 +736,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
             stopService(intent);
 
             TextView viewById = findViewById(R.id.push_screen_url);
-            viewById.setText(Config.getServerURL(this) + "_s");
+            viewById.setText(Config.getServerURL(this));
 
             ImageView im = findViewById(R.id.streaming_activity_push_screen);
             im.setImageResource(R.drawable.push_screen);

@@ -7,8 +7,6 @@ import android.content.Intent;
 import android.graphics.PixelFormat;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
-import android.media.Image;
-import android.media.ImageReader;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
@@ -42,8 +40,6 @@ import org.easydarwin.push.Pusher;
 import org.easydarwin.util.Config;
 import org.easydarwin.util.SPUtil;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -73,19 +69,17 @@ public class RecordService extends Service {
 
     private Surface mSurface;
     private MediaCodec mMediaCodec;
+    private ByteBuffer[] outputBuffers;
 
     final AudioStream audioStream = AudioStream.getInstance(EasyApplication.getEasyApplication());
 
-    private MediaCodec.BufferInfo mBufferInfo = new MediaCodec.BufferInfo();
+    private MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
 
     public static Pusher mEasyPusher;
     private Thread mPushThread;
     private byte[] mPpsSps;
     private WindowManager mWindowManager;
 
-
-    private final boolean useImageReader = false;
-    private ImageReader mImageReader;
     private MediaStream.CodecInfo ci;
 
     @Nullable
@@ -193,42 +187,26 @@ public class RecordService extends Service {
     }
 
     private void configureMedia() throws IOException {
-        ArrayList<MediaStream.CodecInfo> infos = listEncoders("video/avc");
-        ci = infos.get(0);
-
-        // 初始化MediaCodec，获取Surface对象
-        mMediaCodec = MediaCodec.createByCodecName(ci.mName);
-        MediaFormat mediaFormat = MediaFormat.createVideoFormat("video/avc", windowWidth, windowHeight);
-//        int bitrate = (int) (windowWidth * windowHeight * 25 * 2 * 0.05f);
-//        if (windowWidth >= 1920 || windowHeight >= 1920) bitrate *= 0.3;
-//        else if (windowWidth >= 1280 || windowHeight >= 1280) bitrate *= 0.4;
-//        else if (windowWidth >= 720 || windowHeight >= 720) bitrate *= 0.6;
+        ArrayList<MediaStream.CodecInfo> infoList = listEncoders("video/avc");
+        ci = infoList.get(0);
 
         int bitrate = 72 * 1000 + SPUtil.getBitrateKbps(this);
 
+        // 初始化MediaCodec，获取Surface对象
+        mMediaCodec = MediaCodec.createByCodecName(ci.mName);
+
+        MediaFormat mediaFormat = MediaFormat.createVideoFormat("video/avc", windowWidth, windowHeight);
         mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, bitrate);
         mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, 15);
-
-        if (useImageReader) {
-            mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar);
-            mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, ci.mColorFormat);
-        } else {
-            mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
-            mediaFormat.setInteger(MediaFormat.KEY_REPEAT_PREVIOUS_FRAME_AFTER, 20000000);
-        }
-
+        mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
+        mediaFormat.setInteger(MediaFormat.KEY_REPEAT_PREVIOUS_FRAME_AFTER, 20000000);
         mediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1);
         mediaFormat.setInteger(MediaFormat.KEY_CHANNEL_COUNT, 1);
 
         mMediaCodec.configure(mediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
 
         // 获取Surface对象
-        if (useImageReader) {
-            mImageReader = ImageReader.newInstance(windowWidth, windowHeight, PixelFormat.RGBA_8888, 2);
-            mSurface = mImageReader.getSurface();
-        } else {
-            mSurface = mMediaCodec.createInputSurface();
-        }
+        mSurface = mMediaCodec.createInputSurface();
 
         mMediaCodec.start();
     }
@@ -259,9 +237,7 @@ public class RecordService extends Service {
                 try {
                     audioStream.addPusher(mEasyPusher);
 
-                    byte[] argbFrame = new byte[windowWidth * windowHeight * 4];
-                    byte[] frameBuffer = new byte[windowWidth * windowHeight * 3 / 2];
-                    long presentationTimeUs = 0;
+                    byte[] h264 = new byte[windowWidth * windowHeight];
                     long lastKeyFrameUS = 0, lastRequestKeyFrameUS = 0;
 
                     while (mPushThread != null) {
@@ -277,127 +253,72 @@ public class RecordService extends Service {
                             }
                         }
 
-                        if (mImageReader == null) {
-                            int index = mMediaCodec.dequeueOutputBuffer(mBufferInfo, 10000);
-                            Log.i(TAG, "dequeue output buffer index=" + index);
+                        int outputBufferIndex = mMediaCodec.dequeueOutputBuffer(bufferInfo, 10000);
+                        Log.i(TAG, "dequeue output buffer outputBufferIndex=" + outputBufferIndex);
 
-                            if (index == MediaCodec.INFO_TRY_AGAIN_LATER) {//请求超时
-
-                            } else if (index >= 0) {//有效输出
-                                ByteBuffer outputBuffer = mMediaCodec.getOutputBuffer(index);
-                                byte[] outData = new byte[mBufferInfo.size];
-                                outputBuffer.get(outData);
-
-//                                String data0 = String.format("%x %x %x %x %x %x %x %x %x %x ", outData[0], outData[1], outData[2], outData[3], outData[4], outData[5], outData[6], outData[7], outData[8], outData[9]);
-//                                Log.e("out_data", data0);
-
-                                // 记录pps和sps
-                                int type = outData[4] & 0x07;
-                                if (type == 7 || type == 8) {
-                                    mPpsSps = outData;
-                                } else if (type == 5) {
-                                    lastKeyFrameUS = SystemClock.elapsedRealtimeNanos() / 1000;
-
-                                    // 在关键帧前面加上pps和sps数据
-                                    if (mPpsSps != null) {
-                                        byte[] iframeData = new byte[mPpsSps.length + outData.length];
-                                        System.arraycopy(mPpsSps, 0, iframeData, 0, mPpsSps.length);
-                                        System.arraycopy(outData, 0, iframeData, mPpsSps.length, outData.length);
-                                        outData = iframeData;
-                                    }
-                                }
-
-                                mEasyPusher.push(outData, mBufferInfo.presentationTimeUs / 1000, 1);
-                                mMediaCodec.releaseOutputBuffer(index, false);
-                                Thread.sleep(40);   // 不至于动的时候帧率太高。
-                            }
+                        if (outputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
+                            // no output available yet
+                        } else if (outputBufferIndex == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
+                            // not expected for an encoder
+                            outputBuffers = mMediaCodec.getOutputBuffers();
+                        } else if (outputBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+                            //
+                        } else if (outputBufferIndex < 0) {
+                            // let's ignore it
                         } else {
-                            Image image = mImageReader.acquireLatestImage();
+                            ByteBuffer outputBuffer;
 
-                            if (image != null) {
-                                ByteBuffer byteBuffer = image.getPlanes()[0].getBuffer();
-                                byteBuffer.get(argbFrame);
-                                save2file(argbFrame, "/sdcard/argb.argb");
-
-//                            int w = image.getWidth();
-//                            int h = image.getHeight();
-//                                JNIUtil.argb2yuv(argbFrame, frameBuffer, windowWidth, windowHeight, ci.mColorFormat == 19 ? 1 : 3);
-//                            JNIUtil.yuvConvert(frameBuffer, windowWidth, windowHeight, ci.mColorFormat == 19?1:5);
-
-//                            if (codecInfo.mInColorFormat == MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar) {
-//                                JniLibYuv.yuvConvert(frameBuffer, nv21Buffer, windowWidth, windowHeight, JniLibYuv.I420_TO_YV21);
-//                            } else if (codecInfo.mInColorFormat == MediaCodecInfo.CodecCapabilities.COLOR_TI_FormatYUV420PackedSemiPlanar) {
-//                                JniLibYuv.yuvConvert(frameBuffer, nv21Buffer, windowWidth, windowHeight, JniLibYuv.I420_TO_YV21);
-//                            } else if (codecInfo.mInColorFormat == MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar) {
-//                                ;
-//                            }
-
-                                image.close();
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                                outputBuffer = mMediaCodec.getOutputBuffer(outputBufferIndex);
                             } else {
-//                            if (lastFrameTime != 0 && systemTimeNow -lastFrameTime > 1000/mFrameRate*2) {
-//                                lastFrameTime = systemTimeNow;
-//                                inputBuffers = mMediaCodec.getInputBuffers();
-//                                int bufferIndex = mMediaCodec.dequeueInputBuffer(5000);
-//                                if (bufferIndex >= 0) {
-//                                    inputBuffers[bufferIndex].clear();
-//
-//                                    int min = inputBuffers[bufferIndex].capacity() < frameBuffer.length
-//                                            ? inputBuffers[bufferIndex].capacity() : frameBuffer.length;
-//                                    inputBuffers[bufferIndex].put(nv21Buffer, 0, min);
-//
-//                                    mMediaCodec.queueInputBuffer(bufferIndex, 0, inputBuffers[bufferIndex].position(),
-//                                            System.currentTimeMillis() * 1000, 0);
-//                                }
-//                            }
+                                outputBuffer = outputBuffers[outputBufferIndex];
                             }
 
-                            if (SystemClock.elapsedRealtimeNanos() / 1000 - presentationTimeUs >= 30000) {
-                                int bufferIndex = mMediaCodec.dequeueInputBuffer(0);
+                            outputBuffer.position(bufferInfo.offset);
+                            outputBuffer.limit(bufferInfo.offset + bufferInfo.size);
 
-                                if (bufferIndex > -1) {
-                                    ByteBuffer inputBuffer = mMediaCodec.getInputBuffer(bufferIndex);
-                                    inputBuffer.clear();
-                                    inputBuffer.put(frameBuffer);
+                            try {
+                                boolean sync = false;
 
-                                    Log.i(TAG, "视频帧间隔:" + (SystemClock.elapsedRealtimeNanos() / 1000 - presentationTimeUs) / 1000);
+                                if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {// sps
+                                    sync = (bufferInfo.flags & MediaCodec.BUFFER_FLAG_SYNC_FRAME) != 0;
 
-                                    presentationTimeUs = SystemClock.elapsedRealtimeNanos() / 1000;
-                                    mMediaCodec.queueInputBuffer(bufferIndex, 0, frameBuffer.length, presentationTimeUs, 0);
-                                } else {
-                                    Log.w(TAG, "视频帧间隔已足够大.但是依然没有可用的编码输入队列");
-                                }
-                            }
-
-                            int index = mMediaCodec.dequeueOutputBuffer(mBufferInfo, 0);
-//                        Log.i(TAG, "dequeue output buffer index=" + index);
-
-                            if (index == MediaCodec.INFO_TRY_AGAIN_LATER) {//请求超时
-                                Thread.sleep(1);
-                            } else if (index >= 0) {//有效输出
-                                ByteBuffer outputBuffer = mMediaCodec.getOutputBuffer(index);
-                                byte[] outData = new byte[mBufferInfo.size];
-                                outputBuffer.get(outData);
-
-                                // 记录pps和sps
-                                int type = outData[4] & 0x07;
-                                if (type == 7 || type == 8) {
-                                    mPpsSps = outData;
-                                    Log.i(TAG, "sps pps frame");
-                                } else if (type == 5) {
-                                    lastKeyFrameUS = SystemClock.elapsedRealtimeNanos() / 1000;
-                                    Log.i(TAG, "key frame");
-
-                                    //在关键帧前面加上pps和sps数据
-                                    if (mPpsSps != null) {
-                                        byte[] iframeData = new byte[mPpsSps.length + outData.length];
-                                        System.arraycopy(mPpsSps, 0, iframeData, 0, mPpsSps.length);
-                                        System.arraycopy(outData, 0, iframeData, mPpsSps.length, outData.length);
-                                        outData = iframeData;
+                                    if (!sync) {
+                                        byte[] temp = new byte[bufferInfo.size];
+                                        outputBuffer.get(temp);
+                                        mPpsSps = temp;
+                                        continue;
+                                    } else {
+                                        mPpsSps = new byte[0];
                                     }
                                 }
 
-                                mEasyPusher.push(outData, mBufferInfo.presentationTimeUs / 1000, 1);
-                                mMediaCodec.releaseOutputBuffer(index, false);
+                                sync |= (bufferInfo.flags & MediaCodec.BUFFER_FLAG_SYNC_FRAME) != 0;
+                                int len = mPpsSps.length + bufferInfo.size;
+
+                                if (len > h264.length) {
+                                    h264 = new byte[len];
+                                }
+
+                                if (sync) {
+                                    System.arraycopy(mPpsSps, 0, h264, 0, mPpsSps.length);
+                                    outputBuffer.get(h264, mPpsSps.length, bufferInfo.size);
+                                    mEasyPusher.push(h264, 0, mPpsSps.length + bufferInfo.size, bufferInfo.presentationTimeUs / 1000, 2);
+
+                                    if (BuildConfig.DEBUG)
+                                        Log.i(TAG, String.format("push i video stamp:%d", bufferInfo.presentationTimeUs / 1000));
+                                } else {
+                                    outputBuffer.get(h264, 0, bufferInfo.size);
+                                    mEasyPusher.push(h264, 0, bufferInfo.size, bufferInfo.presentationTimeUs / 1000, 1);
+
+                                    if (BuildConfig.DEBUG)
+                                        Log.i(TAG, String.format("push video stamp:%d", bufferInfo.presentationTimeUs / 1000));
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            } finally {
+                                // 将缓冲器返回到编解码器
+                                mMediaCodec.releaseOutputBuffer(outputBufferIndex, false);
                             }
                         }
                     }
@@ -545,21 +466,6 @@ public class RecordService extends Service {
                 null);
     }
 
-    private void save2file(byte[] data, String path) {
-        if (true)
-            return;
-
-        try {
-            FileOutputStream fos = new FileOutputStream(path, true);
-            fos.write(data);
-            fos.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
     /*
     * 销毁WindowManager
     * */
@@ -609,11 +515,6 @@ public class RecordService extends Service {
             mMediaCodec.release();
             mMediaCodec = null;
         }
-
-        if (mImageReader != null) {
-            mImageReader.close();
-            mImageReader = null;
-        }
     }
 
     @Subscribe
@@ -640,34 +541,4 @@ public class RecordService extends Service {
             }
         });
     }
-
-//    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-//    private void encodeToVideoTrack(int index) {
-//        ByteBuffer encodedData = mMediaCodec.getOutputBuffer(index);
-//
-//        if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {//是编码需要的特定数据，不是媒体数据
-//            // The codec config data was pulled out and fed to the muxer when we got
-//            // the INFO_OUTPUT_FORMAT_CHANGED status.
-//            // Ignore it.
-//            Log.d(TAG, "ignoring BUFFER_FLAG_CODEC_CONFIG");
-//            mBufferInfo.size = 0;
-//        }
-//
-//        if (mBufferInfo.size == 0) {
-//            Log.d(TAG, "info.size == 0, drop it.");
-//            encodedData = null;
-//        } else {
-//            Log.d(TAG, "got buffer, info: size=" + mBufferInfo.size
-//                    + ", presentationTimeUs=" + mBufferInfo.presentationTimeUs
-//                    + ", offset=" + mBufferInfo.offset);
-//        }
-//
-//        if (encodedData != null) {
-//            encodedData.position(mBufferInfo.offset);
-//            encodedData.limit(mBufferInfo.offset + mBufferInfo.size);
-//
-////            mMuxer.writeSampleData(mVideoTrackIndex, encodedData, mBufferInfo);//写入
-//            Log.i(TAG, "sent " + mBufferInfo.size + " bytes to muxer...");
-//        }
-//    }
 }
