@@ -340,7 +340,7 @@ public class AudioStream {
                         ps.push(mBuffer.array(),
                                 0,
                                 mBufferInfo.size + 7,
-                                mBufferInfo.presentationTimeUs / 1000,
+                                0,// mBufferInfo.presentationTimeUs / 1000,
                                 0);
                     }
 

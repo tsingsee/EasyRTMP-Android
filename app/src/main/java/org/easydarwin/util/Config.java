@@ -18,7 +18,7 @@ import android.text.TextUtils;
 public class Config {
 
     private static final String SERVER_URL = "serverUrl";
-    private static final String DEFAULT_SERVER_URL = "rtmp://demo.easydss.com:10085/hls/stream_"+String.valueOf((int) (Math.random() * 1000000 + 100000));
+    private static final String DEFAULT_SERVER_URL = "rtmp://demo.easydss.com:10085/live/stream_"+String.valueOf((int) (Math.random() * 1000000 + 100000));
 
     public static String getServerURL(Context context) {
         return PreferenceManager.getDefaultSharedPreferences(context)
