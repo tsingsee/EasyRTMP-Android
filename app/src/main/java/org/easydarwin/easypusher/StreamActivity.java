@@ -44,11 +44,12 @@ import org.easydarwin.bus.StartRecord;
 import org.easydarwin.bus.StopRecord;
 import org.easydarwin.bus.StreamStat;
 import org.easydarwin.bus.SupportResolution;
+import org.easydarwin.easypusher.push.MediaStream;
+import org.easydarwin.easypusher.util.Config;
+import org.easydarwin.easypusher.util.SPUtil;
 import org.easydarwin.easyrtmp.push.EasyRTMP;
-import org.easydarwin.push.MediaStream;
 import org.easydarwin.update.UpdateMgr;
-import org.easydarwin.util.Config;
-import org.easydarwin.util.SPUtil;
+import org.easydarwin.util.BUSUtil;
 import org.easydarwin.util.Util;
 
 import java.io.File;
@@ -58,7 +59,6 @@ import java.util.List;
 
 import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
-import static org.easydarwin.easypusher.EasyApplication.BUS;
 import static org.easydarwin.easypusher.SettingActivity.REQUEST_OVERLAY_PERMISSION;
 import static org.easydarwin.easyrtmp.push.EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_VALIDITY_PERIOD_ERR;
 import static org.easydarwin.update.UpdateMgr.MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE;
@@ -98,13 +98,16 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
     private static final String STATE = "state";
     private static final int MSG_STATE = 1;
 
+    public static long mRecordingBegin;
+    public static boolean mRecording;
+
     private long mExitTime;//声明一个long类型变量：用于存放上一点击“返回键”的时刻
 
     // 录像时的线程
     private Runnable mRecordTickRunnable = new Runnable() {
         @Override
         public void run() {
-            long duration = System.currentTimeMillis() - EasyApplication.getEasyApplication().mRecordingBegin;
+            long duration = System.currentTimeMillis() - mRecordingBegin;
             duration /= 1000;
 
             textRecordTick.setText(String.format("%02d:%02d", duration / 60, (duration) % 60));
@@ -140,7 +143,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        BUS.register(this);
+        BUSUtil.BUS.register(this);
 
         notifyAboutColorChange();
 
@@ -192,7 +195,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
 
     @Override
     protected void onDestroy() {
-        BUS.unregister(this);
+        BUSUtil.BUS.unregister(this);
         super.onDestroy();
     }
 
@@ -315,7 +318,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
 
         bindService(new Intent(this, BackgroundCameraService.class), conn, 0);
 
-        if (EasyApplication.getEasyApplication().mRecording) {
+        if (mRecording) {
             textRecordTick.setVisibility(View.VISIBLE);
             textRecordTick.removeCallbacks(mRecordTickRunnable);
             textRecordTick.post(mRecordTickRunnable);
@@ -478,6 +481,10 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
     * */
     @Subscribe
     public void onStartRecord(StartRecord sr) {
+        // 开始录像的通知，记下当前时间
+        mRecording = true;
+        mRecordingBegin = System.currentTimeMillis();
+
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -496,6 +503,10 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
     * */
     @Subscribe
     public void onStopRecord(StopRecord sr) {
+        // 停止录像的通知，更新状态
+        mRecording = false;
+        mRecordingBegin = 0;
+
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -786,7 +797,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
 
             try {
                 mMediaStream.startStream(url,
-                        code -> EasyApplication.BUS.post(new PushCallback(code))
+                        code -> BUSUtil.BUS.post(new PushCallback(code))
                 );
 
                 ib.setImageResource(R.drawable.start_push_pressed);

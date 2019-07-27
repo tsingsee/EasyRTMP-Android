@@ -28,10 +28,6 @@ public class EasyApplication extends Application {
     private static EasyApplication mApplication;
     public static int activeDays = 9999;
 
-    public static final Bus BUS = new Bus(ThreadEnforcer.ANY);
-    public long mRecordingBegin;
-    public boolean mRecording;
-
     public static EasyApplication getEasyApplication() {
         return mApplication;
     }
@@ -67,7 +63,6 @@ public class EasyApplication extends Application {
             }
         }
 
-        BUS.register(this);
         activeDays = getActiveDays(this,BuildConfig.RTMP_KEY);
 
         // Create the NotificationChannel, but only on API 26+ because
@@ -82,19 +77,5 @@ public class EasyApplication extends Application {
             NotificationManager notificationManager = getSystemService(NotificationManager.class);
             notificationManager.createNotificationChannel(channel);
         }
-    }
-
-    @Subscribe
-    public void onStartRecord(StartRecord sr) {
-        // 开始录像的通知，记下当前时间
-        mRecording = true;
-        mRecordingBegin = System.currentTimeMillis();
-    }
-
-    @Subscribe
-    public void onStopRecord(StopRecord sr){
-        // 停止录像的通知，更新状态
-        mRecording = false;
-        mRecordingBegin = 0;
     }
 }

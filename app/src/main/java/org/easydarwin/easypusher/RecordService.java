@@ -35,17 +35,20 @@ import com.tencent.bugly.crashreport.CrashReport;
 
 import org.easydarwin.encode.AudioStream;
 import org.easydarwin.easyrtmp.push.EasyRTMP;
-import org.easydarwin.push.MediaStream;
 import org.easydarwin.push.Pusher;
-import org.easydarwin.util.Config;
-import org.easydarwin.util.SPUtil;
+import org.easydarwin.easypusher.push.MediaStream;
+import org.easydarwin.easypusher.util.Config;
+import org.easydarwin.easypusher.util.SPUtil;
+import org.easydarwin.util.BUSUtil;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 import static android.media.MediaCodec.PARAMETER_KEY_REQUEST_SYNC_FRAME;
-import static org.easydarwin.push.MediaStream.listEncoders;
+
+import static org.easydarwin.easypusher.push.MediaStream.listEncoders;
+import static org.easydarwin.easypusher.BuildConfig.RTMP_KEY;
 
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
 public class RecordService extends Service {
@@ -71,7 +74,7 @@ public class RecordService extends Service {
     private MediaCodec mMediaCodec;
     private ByteBuffer[] outputBuffers;
 
-    final AudioStream audioStream = AudioStream.getInstance(EasyApplication.getEasyApplication());
+    final AudioStream audioStream = AudioStream.getInstance(EasyApplication.getEasyApplication(), SPUtil.getEnableAudio(EasyApplication.getEasyApplication()));
 
     private MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
 
@@ -115,7 +118,7 @@ public class RecordService extends Service {
             CrashReport.postCatchedException(e);
         }
 
-        EasyApplication.BUS.register(this);
+        BUSUtil.BUS.register(this);
     }
 
     @Override
@@ -125,7 +128,7 @@ public class RecordService extends Service {
 
     @Override
     public void onDestroy() {
-        EasyApplication.BUS.unregister(this);
+        BUSUtil.BUS.unregister(this);
 
         hideView();
         stopPush();
@@ -220,16 +223,16 @@ public class RecordService extends Service {
             public void run() {
                 String url = Config.getServerURL(RecordService.this);
                 boolean mHevc = SPUtil.getHevcCodec(RecordService.this);
-                mEasyPusher = new EasyRTMP(mHevc ? EasyRTMP.VIDEO_CODEC_H265 : EasyRTMP.VIDEO_CODEC_H264);
+                mEasyPusher = new EasyRTMP(mHevc ? EasyRTMP.VIDEO_CODEC_H265 : EasyRTMP.VIDEO_CODEC_H264, RTMP_KEY);
 
                 try {
                     mEasyPusher.initPush(url,
                             getApplicationContext(),
-                            code -> EasyApplication.BUS.post(new PushCallback(code))
+                            code -> BUSUtil.BUS.post(new PushCallback(code))
                     );
                 } catch (Exception ex) {
                     ex.printStackTrace();
-                    EasyApplication.BUS.post(new PushCallback(EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_INVALID_KEY));
+                    BUSUtil.BUS.post(new PushCallback(EasyRTMP.OnInitPusherCallback.CODE.EASY_ACTIVATE_INVALID_KEY));
                     mEasyPusher = null;
                     return;
                 }

@@ -31,7 +31,7 @@ import com.bumptech.glide.Glide;
 import org.easydarwin.easypusher.databinding.ActivityMediaFilesBinding;
 import org.easydarwin.easypusher.databinding.FragmentMediaFileBinding;
 import org.easydarwin.easypusher.databinding.ImagePickerItemBinding;
-import org.easydarwin.util.Config;
+import org.easydarwin.easypusher.util.Config;
 
 import java.io.File;
 import java.io.FilenameFilter;
