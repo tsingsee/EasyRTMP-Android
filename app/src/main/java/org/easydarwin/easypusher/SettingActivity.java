@@ -109,8 +109,7 @@ public class SettingActivity extends AppCompatActivity implements Toolbar.OnMenu
         CheckBox enable_hevc_cb = findViewById(R.id.enable_hevc);
         enable_hevc_cb.setChecked(SPUtil.getHevcCodec(this));
         enable_hevc_cb.setOnCheckedChangeListener(
-//                (buttonView, isChecked) -> SPUtil.setHevcCodec(this, isChecked)
-                (buttonView, isChecked) -> SPUtil.setHevcCodec(this, false)
+                (buttonView, isChecked) -> SPUtil.setHevcCodec(this, isChecked)
         );
 
         // 叠加水印
