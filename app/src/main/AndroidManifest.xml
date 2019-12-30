@@ -64,6 +64,10 @@
             android:name=".BackgroundCameraService"
             android:enabled="true" />
 
+        <service
+            android:name=".UVCCameraService"
+            android:enabled="true" />
+
     </application>
 
 </manifest>

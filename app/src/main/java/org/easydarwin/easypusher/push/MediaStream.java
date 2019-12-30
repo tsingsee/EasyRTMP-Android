@@ -15,9 +15,13 @@ import android.os.Message;
 import android.os.Process;
 import android.util.Log;
 
+import com.serenegiant.usb.IFrameCallback;
+import com.serenegiant.usb.UVCCamera;
+
 import org.easydarwin.bus.SupportResolution;
 import org.easydarwin.easypusher.BackgroundCameraService;
 import org.easydarwin.easypusher.EasyApplication;
+import org.easydarwin.easypusher.UVCCameraService;
 import org.easydarwin.easypusher.util.SPUtil;
 import org.easydarwin.easyrtmp.push.EasyRTMP;
 import org.easydarwin.encode.AudioStream;
@@ -38,12 +42,17 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.ref.WeakReference;
+import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 
+import static android.graphics.ImageFormat.NV21;
 import static android.media.MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420PackedPlanar;
 import static android.media.MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar;
 import static android.media.MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar;
@@ -54,13 +63,10 @@ import static org.easydarwin.easypusher.BuildConfig.RTMP_KEY;
  * 摄像头实时数据采集，并调用相关编码器
  * */
 public class MediaStream {
-    private static final String TAG = "MediaStream";
+    private static final String TAG = MediaStream.class.getSimpleName();
     private static final int SWITCH_CAMERA = 11;
 
-    public static CodecInfo info = new CodecInfo();
-
     private final boolean enableVideo;
-    private boolean isCameraBack = true;
     private boolean mSWCodec, mHevc;    // mSWCodec是否软编码, mHevc是否H265
 
     private String recordPath;          // 录像地址
@@ -73,64 +79,10 @@ public class MediaStream {
     private VideoConsumer mVC, mRecordVC;
     private AudioStream audioStream;
     private EasyMuxer mMuxer;
-    Pusher mEasyPusher;
-    private byte[] i420_buffer;
-
-    private int frameWidth;
-    private int frameHeight;
-    int width = 1280, height = 720;
-
-    Camera mCamera;
-    int mCameraId = Camera.CameraInfo.CAMERA_FACING_BACK;// 默认后摄像头
-    private Camera.CameraInfo camInfo;
-    private Camera.Parameters parameters;
-    Camera.PreviewCallback previewCallback;
+    private Pusher mEasyPusher;
 
     private final HandlerThread mCameraThread;
     private final Handler mCameraHandler;
-
-    /**
-     * 切换摄像头的线程
-     * */
-    private Runnable switchCameraTask = new Runnable() {
-        @Override
-        public void run() {
-            int cameraCount;
-
-            // 调换前后摄像头
-            isCameraBack = !isCameraBack;
-
-            if (!enableVideo)
-                return;
-
-            Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
-            cameraCount = Camera.getNumberOfCameras();  // 得到摄像头的个数
-
-            for (int i = 0; i < cameraCount; i++) {
-                Camera.getCameraInfo(i, cameraInfo);    // 得到每一个摄像头的信息
-                stopPreview();
-                destroyCamera();
-
-                if (mCameraId == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                    // 现在是后置，变更为前置
-                    if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {//代表摄像头的方位，CAMERA_FACING_FRONT前置      CAMERA_FACING_BACK后置
-                        mCameraId = Camera.CameraInfo.CAMERA_FACING_BACK;
-                        createCamera();
-                        startPreview();
-                        break;
-                    }
-                } else {
-                    // 现在是前置， 变更为后置
-                    if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {//代表摄像头的方位，CAMERA_FACING_FRONT前置      CAMERA_FACING_BACK后置
-                        mCameraId = Camera.CameraInfo.CAMERA_FACING_FRONT;
-                        createCamera();
-                        startPreview();
-                        break;
-                    }
-                }
-            }
-        }
-    };
 
     /**
      * 初始化MediaStream
@@ -171,41 +123,9 @@ public class MediaStream {
         };
 
         this.enableVideo = enableVideo;
-
-        if (enableVideo) {
-            // data：摄像头预览的视频流数据
-            previewCallback = (data, camera) -> {
-                if (data == null)
-                    return;
-
-                int result;
-
-                if (camInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                    result = (camInfo.orientation + displayRotationDegree) % 360;
-                } else {  // back-facing
-                    result = (camInfo.orientation - displayRotationDegree + 360) % 360;
-                }
-
-                if (i420_buffer == null || i420_buffer.length != data.length) {
-                    i420_buffer = new byte[data.length];
-                }
-
-                JNIUtil.ConvertToI420(data, i420_buffer, width, height, 0, 0, width, height, result % 360, 2);
-                System.arraycopy(i420_buffer, 0, data, 0, data.length);
-
-                if (mRecordVC != null) {
-                    mRecordVC.onVideo(i420_buffer, 0);
-                }
-
-                mVC.onVideo(data, 0);
-                mCamera.addCallbackBuffer(data);
-            };
-        }
     }
 
-    /**
-     * 初始化摄像头
-     * */
+    /// 初始化摄像头
     public void createCamera() {
         if (Thread.currentThread() != mCameraThread) {
             mCameraHandler.post(() -> {
@@ -216,6 +136,7 @@ public class MediaStream {
             return;
         }
 
+        mSWCodec = SPUtil.getswCodec(context);
         mHevc = SPUtil.getHevcCodec(context);
         mEasyPusher = new EasyRTMP(mHevc ? EasyRTMP.VIDEO_CODEC_H265 : EasyRTMP.VIDEO_CODEC_H264, RTMP_KEY);
 
@@ -223,14 +144,19 @@ public class MediaStream {
             return;
         }
 
-        try {
-            mSWCodec = SPUtil.getswCodec(context);
+        if (mCameraId == CAMERA_FACING_BACK_UVC) {
+            createUvcCamera();
+        } else {
+            createNativeCamera();
+        }
+    }
 
+    private void createNativeCamera() {
+        try {
             mCamera = Camera.open(mCameraId);// 初始化创建Camera实例对象
             mCamera.setErrorCallback((i, camera) -> {
                 throw new IllegalStateException("Camera Error:" + i);
             });
-
             Log.i(TAG, "open Camera");
 
             parameters = mCamera.getParameters();
@@ -272,7 +198,7 @@ public class MediaStream {
             }
 
 //            List<Camera.Size> sizes = parameters.getSupportedPreviewSizes();
-            parameters.setPreviewSize(width, height);// 设置预览尺寸
+            parameters.setPreviewSize(defaultWidth, defaultHeight);// 设置预览尺寸
 
             int[] ints = determineMaximumSupportedFramerate(parameters);
             parameters.setPreviewFpsRange(ints[0], ints[1]);
@@ -325,13 +251,38 @@ public class MediaStream {
         }
     }
 
-    /**
-     * 销毁Camera
-     */
+    private void createUvcCamera() {
+//        frameWidth = frameRotate ? height : width;
+//        frameHeight = frameRotate ? width : height;
+
+        frameWidth = defaultWidth;
+        frameHeight = defaultHeight;
+
+        uvcCamera = UVCCameraService.liveData.getValue();
+        if (uvcCamera != null) {
+            uvcCamera.setPreviewSize(frameWidth,
+                    frameHeight,
+                    1,
+                    30,
+                    UVCCamera.PIXEL_FORMAT_YUV420SP,1.0f);
+        }
+
+        if (uvcCamera == null) {
+            mCameraId = Camera.CameraInfo.CAMERA_FACING_BACK;
+            createNativeCamera();
+        }
+    }
+
+    /// 销毁Camera
     public synchronized void destroyCamera() {
         if (Thread.currentThread() != mCameraThread) {
             mCameraHandler.post(() -> destroyCamera());
             return;
+        }
+
+        if (uvcCamera != null) {
+            uvcCamera.destroy();
+            uvcCamera = null;
         }
 
         if (mCamera != null) {
@@ -354,9 +305,7 @@ public class MediaStream {
         }
     }
 
-    /**
-     * 回收线程
-     * */
+    /// 回收线程
     public void release() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
             mCameraThread.quitSafely();
@@ -373,96 +322,115 @@ public class MediaStream {
         }
     }
 
-    /**
-     * 开启预览
-     */
+    /// 开启预览
     public synchronized void startPreview() {
         if (Thread.currentThread() != mCameraThread) {
             mCameraHandler.post(() -> startPreview());
             return;
         }
 
-        if (mCamera != null) {
-            int previewFormat = parameters.getPreviewFormat();
-
-            Camera.Size previewSize = parameters.getPreviewSize();
-            int size = previewSize.width * previewSize.height * ImageFormat.getBitsPerPixel(previewFormat) / 8;
-
-            width = previewSize.width;
-            height = previewSize.height;
-
-            mCamera.addCallbackBuffer(new byte[size]);
-            mCamera.addCallbackBuffer(new byte[size]);
-            mCamera.setPreviewCallbackWithBuffer(previewCallback);
-
-            Log.i(TAG, "setPreviewCallbackWithBuffer");
-
-            try {
-                // TextureView的
-                SurfaceTexture holder = mSurfaceHolderRef.get();
-
-                // SurfaceView传入上面创建的Camera对象
-                if (holder != null) {
-                    mCamera.setPreviewTexture(holder);
-                    Log.i(TAG, "setPreviewTexture");
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            mCamera.startPreview();
-
-            boolean frameRotate;
-            int result;
-
-            if (camInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                result = (camInfo.orientation + displayRotationDegree) % 360;
-            } else {  // back-facing
-                result = (camInfo.orientation - displayRotationDegree + 360) % 360;
-            }
-
-            frameRotate = result % 180 != 0;
-
-            frameWidth = frameRotate ? height : width;
-            frameHeight = frameRotate ? width : height;
-
-            if (mSWCodec) {
-                SWConsumer sw = new SWConsumer(context, mEasyPusher, SPUtil.getBitrateKbps(context));
-
-                mVC = new ClippableVideoConsumer(context,
-                        sw,
-                        frameWidth,
-                        frameHeight,
-                        SPUtil.getEnableVideoOverlay(context));
-            } else {
-                HWConsumer hw = new HWConsumer(context,
-                        mHevc ? MediaFormat.MIMETYPE_VIDEO_HEVC : MediaFormat.MIMETYPE_VIDEO_AVC,
-                        mEasyPusher,
-                        SPUtil.getBitrateKbps(context),
-                        info.mName,
-                        info.mColorFormat);
-
-                mVC = new ClippableVideoConsumer(context,
-                        hw,
-                        frameWidth,
-                        frameHeight,
-                        SPUtil.getEnableVideoOverlay(context));
-            }
-
-            mVC.onVideoStart(frameWidth, frameHeight);
+        if (uvcCamera != null) {
+            startUvcPreview();
+        } else if (mCamera != null) {
+            startCameraPreview();
         }
+
+        if (mSWCodec) {
+            SWConsumer sw = new SWConsumer(context, mEasyPusher, SPUtil.getBitrateKbps(context));
+            mVC = new ClippableVideoConsumer(context,
+                    sw,
+                    frameWidth,
+                    frameHeight,
+                    SPUtil.getEnableVideoOverlay(context));
+        } else {
+            HWConsumer hw = new HWConsumer(context,
+                    mHevc ? MediaFormat.MIMETYPE_VIDEO_HEVC : MediaFormat.MIMETYPE_VIDEO_AVC,
+                    mEasyPusher,
+                    SPUtil.getBitrateKbps(context),
+                    info.mName,
+                    info.mColorFormat);
+            mVC = new ClippableVideoConsumer(context,
+                    hw,
+                    frameWidth,
+                    frameHeight,
+                    SPUtil.getEnableVideoOverlay(context));
+        }
+        mVC.onVideoStart(frameWidth, frameHeight);
 
         audioStream.addPusher(mEasyPusher);
     }
 
-    /**
-     * 停止预览
-     */
+    private void startUvcPreview() {
+        SurfaceTexture holder = mSurfaceHolderRef.get();
+        if (holder != null) {
+            uvcCamera.setPreviewTexture(holder);
+        }
+
+        try {
+            uvcCamera.setFrameCallback(uvcFrameCallback, UVCCamera.PIXEL_FORMAT_YUV420SP/*UVCCamera.PIXEL_FORMAT_NV21*/);
+            uvcCamera.startPreview();
+        } catch (Throwable e){
+            e.printStackTrace();
+        }
+    }
+
+    private void startCameraPreview() {
+        int previewFormat = parameters.getPreviewFormat();
+
+        Camera.Size previewSize = parameters.getPreviewSize();
+        int size = previewSize.width * previewSize.height * ImageFormat.getBitsPerPixel(previewFormat) / 8;
+
+        defaultWidth = previewSize.width;
+        defaultHeight = previewSize.height;
+
+        mCamera.addCallbackBuffer(new byte[size]);
+        mCamera.addCallbackBuffer(new byte[size]);
+        mCamera.setPreviewCallbackWithBuffer(previewCallback);
+
+        Log.i(TAG, "setPreviewCallbackWithBuffer");
+
+        try {
+            // TextureView的
+            SurfaceTexture holder = mSurfaceHolderRef.get();
+
+            // SurfaceView传入上面创建的Camera对象
+            if (holder != null) {
+                mCamera.setPreviewTexture(holder);
+                Log.i(TAG, "setPreviewTexture");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        mCamera.startPreview();
+
+        boolean frameRotate;
+        int result;
+
+        if (camInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+            result = (camInfo.orientation + displayRotationDegree) % 360;
+        } else {  // back-facing
+            result = (camInfo.orientation - displayRotationDegree + 360) % 360;
+        }
+
+        frameRotate = result % 180 != 0;
+
+        frameWidth = frameRotate ? defaultHeight : defaultWidth;
+        frameHeight = frameRotate ? defaultWidth : defaultHeight;
+    }
+
+    /// 停止预览
     public synchronized void stopPreview() {
         if (Thread.currentThread() != mCameraThread) {
             mCameraHandler.post(() -> stopPreview());
             return;
         }
+
+        if (uvcCamera != null) {
+            uvcCamera.stopPreview();
+        }
+
+//        mCameraHandler.removeCallbacks(dequeueRunnable);
 
         // 关闭摄像头
         if (mCamera != null) {
@@ -496,9 +464,7 @@ public class MediaStream {
         }
     }
 
-    /**
-     * 开始推流
-     * */
+    /// 开始推流
     public void startStream(String url, InitCallback callback) throws IOException {
         try {
             if (SPUtil.getEnableVideo(EasyApplication.getEasyApplication()))
@@ -513,17 +479,13 @@ public class MediaStream {
         }
     }
 
-    /**
-     * 停止推流
-     * */
+    /// 停止推流
     public void stopStream() {
         mEasyPusher.stop();
         isPushStream = false;
     }
 
-    /**
-     * 录像
-     * */
+    /// 开始录像
     public synchronized void startRecord() {
         if (Thread.currentThread() != mCameraThread) {
             mCameraHandler.post(() -> startRecord());
@@ -553,9 +515,7 @@ public class MediaStream {
         }
     }
 
-    /**
-     * 停止录像
-     * */
+    /// 停止录像
     public synchronized void stopRecord() {
         if (Thread.currentThread() != mCameraThread) {
             mCameraHandler.post(() -> stopRecord());
@@ -576,9 +536,7 @@ public class MediaStream {
         mMuxer = null;
     }
 
-    /**
-     * 更新分辨率
-     */
+    /// 更新分辨率
     public void updateResolution(final int w, final int h) {
         if (mCamera == null)
             return;
@@ -587,23 +545,200 @@ public class MediaStream {
         destroyCamera();
 
         mCameraHandler.post(() -> {
-            width = w;
-            height = h;
+            defaultWidth = w;
+            defaultHeight = h;
         });
 
         createCamera();
         startPreview();
     }
 
+    /* ============================== Camera ============================== */
+
+    /*
+     * 默认后置摄像头
+     *   Camera.CameraInfo.CAMERA_FACING_BACK
+     *   Camera.CameraInfo.CAMERA_FACING_FRONT
+     *   CAMERA_FACING_BACK_UVC
+     * */
+    int mCameraId = Camera.CameraInfo.CAMERA_FACING_BACK;
+    public static final int CAMERA_FACING_BACK_UVC = 2;
+    public static final int CAMERA_FACING_BACK_LOOP = -1;
+
+    private int frameWidth;
+    private int frameHeight;
+    int defaultWidth = 1280, defaultHeight = 720;
+    private int mTargetCameraId;
+
     /**
      * 切换前后摄像头
-     */
+     *  CAMERA_FACING_BACK_LOOP                 循环切换摄像头
+     *  Camera.CameraInfo.CAMERA_FACING_BACK    后置摄像头
+     *  Camera.CameraInfo.CAMERA_FACING_FRONT   前置摄像头
+     *  CAMERA_FACING_BACK_UVC                  UVC摄像头
+     * */
+    public void switchCamera(int cameraId) {
+        this.mTargetCameraId = cameraId;
+
+        if (mCameraHandler.hasMessages(SWITCH_CAMERA)) {
+            return;
+        } else {
+            mCameraHandler.sendEmptyMessage(SWITCH_CAMERA);
+        }
+    }
+
     public void switchCamera() {
-        if (mCameraHandler.hasMessages(SWITCH_CAMERA))
+        switchCamera(CAMERA_FACING_BACK_LOOP);
+    }
+
+    /// 切换摄像头的线程
+    private Runnable switchCameraTask = new Runnable() {
+        @Override
+        public void run() {
+            if (!enableVideo)
+                return;
+
+            try {
+                if (mTargetCameraId != CAMERA_FACING_BACK_LOOP && mCameraId == mTargetCameraId) {
+                    if (uvcCamera != null || mCamera != null) {
+                        return;
+                    }
+                }
+
+                if (mTargetCameraId == CAMERA_FACING_BACK_LOOP) {
+                    if (mCameraId == Camera.CameraInfo.CAMERA_FACING_BACK) {
+                        mCameraId = Camera.CameraInfo.CAMERA_FACING_FRONT;
+                    } else if (mCameraId == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                        mCameraId = CAMERA_FACING_BACK_UVC;// 尝试切换到外置摄像头
+                    } else {
+                        mCameraId = Camera.CameraInfo.CAMERA_FACING_BACK;
+                    }
+                } else {
+                    mCameraId = mTargetCameraId;
+                }
+
+                stopPreview();
+                destroyCamera();
+                createCamera();
+                startPreview();
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+
+            }
+        }
+    };
+
+    /* ============================== Native Camera ============================== */
+
+    Camera mCamera;
+    private Camera.CameraInfo camInfo;
+    private Camera.Parameters parameters;
+    private byte[] i420_buffer;
+
+    // 摄像头预览的视频流数据
+    Camera.PreviewCallback previewCallback = (data, camera) -> {
+        if (data == null)
             return;
 
-        mCameraHandler.sendEmptyMessage(SWITCH_CAMERA);
+        int result;
+        if (camInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+            result = (camInfo.orientation + displayRotationDegree) % 360;
+        } else {  // back-facing
+            result = (camInfo.orientation - displayRotationDegree + 360) % 360;
+        }
+
+        if (i420_buffer == null || i420_buffer.length != data.length) {
+            i420_buffer = new byte[data.length];
+        }
+
+        JNIUtil.ConvertToI420(data, i420_buffer, defaultWidth, defaultHeight, 0, 0, defaultWidth, defaultHeight, result % 360, 2);
+        System.arraycopy(i420_buffer, 0, data, 0, data.length);
+
+        if (mRecordVC != null) {
+            mRecordVC.onVideo(i420_buffer, 0);
+        }
+
+        mVC.onVideo(data, 0);
+        mCamera.addCallbackBuffer(data);
+    };
+
+    /* ============================== UVC Camera ============================== */
+
+    private UVCCamera uvcCamera;
+
+    BlockingQueue<byte[]> cache = new ArrayBlockingQueue<byte[]>(100);
+//    BlockingQueue<byte[]>
+//    = new ArrayBlockingQueue<byte[]>(10);
+//    final Runnable dequeueRunnable = new Runnable() {
+//        @Override
+//        public void run() {
+//            try {
+//                byte[] data = bufferQueue.poll(10, TimeUnit.MICROSECONDS);
+//
+//                if (data != null) {
+//                    onPreviewFrame2(data, uvcCamera);
+//                    cache.offer(data);
+//                }
+//
+//                if (uvcCamera == null)
+//                    return;
+//
+//                mCameraHandler.post(this);
+//            } catch (InterruptedException ex) {
+//                ex.printStackTrace();
+//            }
+//        }
+//    };
+
+    final IFrameCallback uvcFrameCallback = new IFrameCallback() {
+        @Override
+        public void onFrame(ByteBuffer frame) {
+            if (uvcCamera == null)
+                return;
+
+            Thread.currentThread().setName("UVCCamera");
+            frame.clear();
+
+            byte[] data = cache.poll();
+            if (data == null) {
+                data = new byte[frame.capacity()];
+            }
+
+            frame.get(data);
+
+//            bufferQueue.offer(data);
+//            mCameraHandler.post(dequeueRunnable);
+
+            onPreviewFrame2(data, uvcCamera);
+        }
+    };
+
+    public void onPreviewFrame2(byte[] data, Object camera) {
+        if (data == null)
+            return;
+
+        if (i420_buffer == null || i420_buffer.length != data.length) {
+            i420_buffer = new byte[data.length];
+        }
+
+        JNIUtil.ConvertToI420(data, i420_buffer,
+                defaultWidth, defaultHeight,
+                0, 0,
+                defaultWidth, defaultHeight,
+                0, 2);
+        System.arraycopy(i420_buffer, 0, data, 0, data.length);
+
+        if (mRecordVC != null) {
+            mRecordVC.onVideo(i420_buffer, 0);
+        }
+
+        mVC.onVideo(data, 0);
     }
+
+    /* ============================== CodecInfo ============================== */
+
+    public static CodecInfo info = new CodecInfo();
 
     public static class CodecInfo {
         public String mName;
@@ -721,5 +856,29 @@ public class MediaStream {
 
     public void setDisplayRotationDegree(int degree) {
         displayRotationDegree = degree;
+    }
+
+    /**
+     * 旋转YUV格式数据
+     *
+     * @param src    YUV数据
+     * @param format 0，420P；1，420SP
+     * @param width  宽度
+     * @param height 高度
+     * @param degree 旋转度数
+     */
+    private static void yuvRotate(byte[] src, int format, int width, int height, int degree) {
+        int offset = 0;
+        if (format == 0) {
+            JNIUtil.rotateMatrix(src, offset, width, height, degree);
+            offset += (width * height);
+            JNIUtil.rotateMatrix(src, offset, width / 2, height / 2, degree);
+            offset += width * height / 4;
+            JNIUtil.rotateMatrix(src, offset, width / 2, height / 2, degree);
+        } else if (format == 1) {
+            JNIUtil.rotateMatrix(src, offset, width, height, degree);
+            offset += width * height;
+            JNIUtil.rotateShortMatrix(src, offset, width / 2, height / 2, degree);
+        }
     }
 }

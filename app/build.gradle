@@ -10,8 +10,8 @@ android {
         targetSdkVersion 26
 //        versionCode generateVersionCode()
 //        versionName generateVersionName()
-        versionCode 14191021
-        versionName '1.4.19.1021'
+        versionCode 14191222
+        versionName '1.4.19.122'
         testInstrumentationRunner 'android.support.test.runner.AndroidJUnitRunner'
         flavorDimensions "versionCode"
 
@@ -91,4 +91,16 @@ dependencies {
 
     implementation 'com.tencent.bugly:crashreport_upgrade:latest.release'//其中latest.release指代最新版本号，也可以指定明确的版本号，例如1.2.0
     implementation 'com.tencent.bugly:nativecrashreport:latest.release' //其中latest.release指代最新版本号，也可以指定明确的版本号，例如2.2.0
+
+    implementation 'android.arch.lifecycle:extensions:1.0.0'
+    implementation 'android.arch.lifecycle:reactivestreams:1.0.0'
+    implementation 'android.arch.lifecycle:extensions:1.0.0'
+    implementation 'android.arch.lifecycle:reactivestreams:1.0.0'
+    annotationProcessor "android.arch.lifecycle:compiler:1.0.0"
+    annotationProcessor "android.arch.lifecycle:compiler:1.0.0"
+
+    implementation(name: 'libuvccamera-release', ext: 'aar') {
+        exclude module: 'support-v4'
+        exclude module: 'appcompat-v7'
+    }
 }
