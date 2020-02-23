@@ -50,9 +50,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
 
-import static android.graphics.ImageFormat.NV21;
 import static android.media.MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420PackedPlanar;
 import static android.media.MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar;
 import static android.media.MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar;
@@ -89,7 +87,7 @@ public class MediaStream {
      * */
     public MediaStream(Context context, SurfaceTexture texture, boolean enableVideo) {
         this.context = context;
-        audioStream = AudioStream.getInstance(context, SPUtil.getEnableAudio(context));
+        audioStream = AudioStream.getInstance(context);
         mSurfaceHolderRef = new WeakReference(texture);
 
         mCameraThread = new HandlerThread("CAMERA") {
@@ -355,8 +353,12 @@ public class MediaStream {
                     frameHeight,
                     SPUtil.getEnableVideoOverlay(context));
         }
-        mVC.onVideoStart(frameWidth, frameHeight);
 
+        if (uvcCamera != null || mCamera != null) {
+            mVC.onVideoStart(frameWidth, frameHeight);
+        }
+
+        audioStream.setEnableAudio(SPUtil.getEnableAudio(context));
         audioStream.addPusher(mEasyPusher);
     }
 

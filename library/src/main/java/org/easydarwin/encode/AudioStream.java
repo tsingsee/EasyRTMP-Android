@@ -73,16 +73,15 @@ public class AudioStream {
     private Thread mWriter;
     private MediaFormat newFormat;
 
-    public static synchronized AudioStream getInstance(Context context, boolean enableAudio) {
+    public static synchronized AudioStream getInstance(Context context) {
         if (_this == null)
-            _this = new AudioStream(context, enableAudio);
+            _this = new AudioStream(context);
 
         return _this;
     }
 
-    public AudioStream(Context context, boolean enableAudio) {
+    public AudioStream(Context context) {
         this.context = context;
-        this.enableAudio = enableAudio;
 
         int i = 0;
 
@@ -395,5 +394,9 @@ public class AudioStream {
         } catch (InterruptedException e) {
             e.fillInStackTrace();
         }
+    }
+
+    public void setEnableAudio(boolean enableAudio) {
+        this.enableAudio = enableAudio;
     }
 }

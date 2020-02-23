@@ -74,7 +74,7 @@ public class RecordService extends Service {
     private MediaCodec mMediaCodec;
     private ByteBuffer[] outputBuffers;
 
-    final AudioStream audioStream = AudioStream.getInstance(EasyApplication.getEasyApplication(), SPUtil.getEnableAudio(EasyApplication.getEasyApplication()));
+    final AudioStream audioStream = AudioStream.getInstance(EasyApplication.getEasyApplication());
 
     private MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
 
@@ -238,6 +238,7 @@ public class RecordService extends Service {
                 }
 
                 try {
+                    audioStream.setEnableAudio(SPUtil.getEnableAudio(EasyApplication.getEasyApplication()));
                     audioStream.addPusher(mEasyPusher);
 
                     byte[] h264 = new byte[windowWidth * windowHeight];

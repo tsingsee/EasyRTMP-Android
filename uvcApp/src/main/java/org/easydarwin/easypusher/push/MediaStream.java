@@ -831,11 +831,11 @@ public class MediaStream extends Service implements LifecycleObserver {
             overlay.init(height, width, appContext.getFileStreamPath("SIMYOU.ttf").getPath());
         }
 
-        audioStream = AudioStream.getInstance(appContext, SPUtil.getEnableAudio(appContext));
+        audioStream = AudioStream.getInstance(appContext);
 //        audioStream.startRecord();
+        audioStream.setEnableAudio(SPUtil.getEnableAudio(appContext));
         audioStream.addPusher(mEasyPusher);
     }
-
 
     /**
      * 旋转YUV格式数据

@@ -10,8 +10,8 @@ android {
         targetSdkVersion 26
 //        versionCode generateVersionCode()
 //        versionName generateVersionName()
-        versionCode 14191231
-        versionName '1.4.19.1231'
+        versionCode 14200223
+        versionName '1.4.20.0223'
         testInstrumentationRunner 'android.support.test.runner.AndroidJUnitRunner'
         flavorDimensions "versionCode"
 
