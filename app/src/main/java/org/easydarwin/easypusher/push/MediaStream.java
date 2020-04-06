@@ -253,6 +253,16 @@ public class MediaStream {
 //        frameWidth = frameRotate ? height : width;
 //        frameHeight = frameRotate ? width : height;
 
+        ArrayList<CodecInfo> infos = listEncoders(mHevc ? MediaFormat.MIMETYPE_VIDEO_HEVC : MediaFormat.MIMETYPE_VIDEO_AVC);
+
+        if (!infos.isEmpty()) {
+            CodecInfo ci = infos.get(0);
+            info.mName = ci.mName;
+            info.mColorFormat = ci.mColorFormat;
+        } else {
+            mSWCodec = true;
+        }
+
         frameWidth = defaultWidth;
         frameHeight = defaultHeight;
 
@@ -494,9 +504,7 @@ public class MediaStream {
             return;
         }
 
-        boolean rotate = false;
-
-        if (mCamera == null) {
+        if (mCamera == null && uvcCamera == null) {
             return;
         }
 
