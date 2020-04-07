@@ -289,7 +289,7 @@ public class MediaStream {
         }
 
         if (uvcCamera != null) {
-            uvcCamera.destroy();
+//            uvcCamera.destroy();
             uvcCamera = null;
         }
 

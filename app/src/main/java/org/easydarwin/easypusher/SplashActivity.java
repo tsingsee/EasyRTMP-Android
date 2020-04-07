@@ -11,7 +11,9 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.view.View;
 import android.view.WindowManager;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 /**
@@ -26,13 +28,25 @@ public class SplashActivity extends Activity {
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN); //隐藏状态栏
 
-        new Handler().postDelayed(new Runnable() {
+        Intent intent1 = new Intent(this, UVCCameraService.class);
+        startService(intent1);
+
+        ImageView iv = findViewById(R.id.logo);
+        iv.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void run() {
+            public void onClick(View v) {
                 startActivity(new Intent(SplashActivity.this, StreamActivity.class));
                 SplashActivity.this.finish();
             }
-        }, 2000);
+        });
+
+//        new Handler().postDelayed(new Runnable() {
+//            @Override
+//            public void run() {
+//                startActivity(new Intent(SplashActivity.this, StreamActivity.class));
+//                SplashActivity.this.finish();
+//            }
+//        }, 2000);
 
         String versionName;
 

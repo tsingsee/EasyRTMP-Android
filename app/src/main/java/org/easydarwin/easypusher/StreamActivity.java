@@ -156,6 +156,9 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
         } else {
             // resume
         }
+
+        Intent intent1 = new Intent(this, UVCCameraService.class);
+        startService(intent1);
     }
 
     @Override
@@ -178,7 +181,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
                 mMediaStream = null;
 
                 stopService(new Intent(this, BackgroundCameraService.class));
-                stopService(new Intent(this, UVCCameraService.class));
+//                stopService(new Intent(this, UVCCameraService.class));
             }
         }
 
@@ -301,8 +304,8 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
         Intent intent = new Intent(this, BackgroundCameraService.class);
         startService(intent);
 
-        Intent intent1 = new Intent(this, UVCCameraService.class);
-        startService(intent1);
+//        Intent intent1 = new Intent(this, UVCCameraService.class);
+//        startService(intent1);
 
         conn = new ServiceConnection() {
             @Override
@@ -401,6 +404,11 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
         mMediaStream.setDisplayRotationDegree(getDisplayRotationDegree());
         mMediaStream.createCamera();
         mMediaStream.startPreview();
+
+        new Handler().postDelayed(() -> {
+            mMediaStream.switchCamera();
+        }, 1000);
+
 
         if (mMediaStream.isStreaming()) {
             sendMessage("推流中");
