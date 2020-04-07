@@ -156,9 +156,6 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
         } else {
             // resume
         }
-
-        Intent intent1 = new Intent(this, UVCCameraService.class);
-        startService(intent1);
     }
 
     @Override
@@ -181,7 +178,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
                 mMediaStream = null;
 
                 stopService(new Intent(this, BackgroundCameraService.class));
-//                stopService(new Intent(this, UVCCameraService.class));
+                stopService(new Intent(this, UVCCameraService.class));
             }
         }
 
@@ -204,8 +201,8 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     /*
-    * android6.0权限，onRequestPermissionsResult回调
-    * */
+     * android6.0权限，onRequestPermissionsResult回调
+     * */
     @Override
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
         switch (requestCode) {
@@ -248,8 +245,8 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     /*
-    * 推送屏幕
-    * */
+     * 推送屏幕
+     * */
     private void startScreenPushIntent() {
         if (StreamActivity.mResultIntent != null && StreamActivity.mResultCode != 0) {
             Intent intent = new Intent(getApplicationContext(), RecordService.class);
@@ -304,8 +301,8 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
         Intent intent = new Intent(this, BackgroundCameraService.class);
         startService(intent);
 
-//        Intent intent1 = new Intent(this, UVCCameraService.class);
-//        startService(intent1);
+        Intent intent1 = new Intent(this, UVCCameraService.class);
+        startService(intent1);
 
         conn = new ServiceConnection() {
             @Override
@@ -351,8 +348,8 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     /*
-    * 初始化MediaStream
-    * */
+     * 初始化MediaStream
+     * */
     private void goonWithAvailableTexture(SurfaceTexture surface) {
         final File easyPusher = new File(Config.recordPath());
         easyPusher.mkdir();
@@ -405,11 +402,6 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
         mMediaStream.createCamera();
         mMediaStream.startPreview();
 
-        new Handler().postDelayed(() -> {
-            mMediaStream.switchCamera();
-        }, 1000);
-
-
         if (mMediaStream.isStreaming()) {
             sendMessage("推流中");
             txtStreamAddress.setText(Config.getServerURL(this));
@@ -440,8 +432,8 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     /*
-    * 初始化下拉控件的列表（显示分辨率）
-    * */
+     * 初始化下拉控件的列表（显示分辨率）
+     * */
     private void initSpinner() {
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, R.layout.spn_item, listResolution);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -489,8 +481,8 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     /*
-    * 开始录像的通知
-    * */
+     * 开始录像的通知
+     * */
     @Subscribe
     public void onStartRecord(StartRecord sr) {
         // 开始录像的通知，记下当前时间
@@ -511,8 +503,8 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     /*
-    * 得知停止录像
-    * */
+     * 得知停止录像
+     * */
     @Subscribe
     public void onStopRecord(StopRecord sr) {
         // 停止录像的通知，更新状态
@@ -532,8 +524,8 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     /*
-    * 开始推流，获取fps、bps
-    * */
+     * 开始推流，获取fps、bps
+     * */
     @Subscribe
     public void onStreamStat(final StreamStat stat) {
         streamStat.post(() ->
@@ -544,8 +536,8 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     /*
-    * 获取可以支持的分辨率
-    * */
+     * 获取可以支持的分辨率
+     * */
     @Subscribe
     public void onSupportResolution(SupportResolution res) {
         runOnUiThread(() -> {
@@ -565,8 +557,8 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     /*
-    * 得知推流的状态
-    * */
+     * 得知推流的状态
+     * */
     @Subscribe
     public void onPushCallback(final PushCallback cb) {
         switch (cb.code) {
@@ -696,8 +688,8 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     /*
-    * 录像
-    * */
+     * 录像
+     * */
     public void onRecord(View view) {
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PERMISSION_GRANTED){
             ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_STORAGE_PERMISSION);
@@ -732,10 +724,10 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
                         .setMessage("推送屏幕需要APP出现在顶部.是否确定?")
                         .setPositiveButton(android.R.string.ok,
                                 (dialogInterface, i) -> {
-                            // 在Android 6.0后，Android需要动态获取权限，若没有权限，提示获取.
-                            final Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + BuildConfig.APPLICATION_ID));
-                            startActivityForResult(intent, REQUEST_OVERLAY_PERMISSION);
-                        })
+                                    // 在Android 6.0后，Android需要动态获取权限，若没有权限，提示获取.
+                                    final Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + BuildConfig.APPLICATION_ID));
+                                    startActivityForResult(intent, REQUEST_OVERLAY_PERMISSION);
+                                })
                         .setNegativeButton(android.R.string.cancel,null)
                         .setCancelable(false)
                         .show();
@@ -769,15 +761,15 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     /*
-    * 切换分辨率
-    * */
+     * 切换分辨率
+     * */
     public void onClickResolution(View view) {
         findViewById(R.id.spn_resolution).performClick();
     }
 
     /*
-    * 切换屏幕方向
-    * */
+     * 切换屏幕方向
+     * */
     public void onSwitchOrientation(View view) {
         if (mMediaStream != null) {
             if (mMediaStream.isStreaming()){
@@ -799,8 +791,8 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     /*
-    * 推流or停止
-    * */
+     * 推流or停止
+     * */
     public void onStartOrStopPush(View view) {
         ImageView ib = findViewById(R.id.streaming_activity_push);
 
@@ -826,8 +818,8 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     /*
-    * 关于我们
-    * */
+     * 关于我们
+     * */
     public void onAbout(View view) {
         Intent intent = new Intent(this, AboutActivity.class);
         startActivityForResult(intent, 0);
@@ -835,8 +827,8 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     /*
-    * 设置
-    * */
+     * 设置
+     * */
     public void onSetting(View view) {
         Intent intent = new Intent(this, SettingActivity.class);
         startActivityForResult(intent, 0);
