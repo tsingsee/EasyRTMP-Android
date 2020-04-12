@@ -29,13 +29,13 @@ EasyRTMP是[TSINGSEE青犀开放平台](http://open.tsingsee.com "TSINGSEE青犀
 
 	[http://d.alphaqr.com/easyrtmp](http://d.alphaqr.com/easyrtmp)
 
-	![EasyRTMP Android](http://www.easydarwin.org/github/images/easyrtmpfirim20170409.png)
+	![EasyRTMP Android](http://www.easydarwin.org/github/images/app/2020/easyrtmp_android.png)
 
 - EasyRTMP iOS：支持前/后摄像头直播
 
 	[https://itunes.apple.com/us/app/easyrtmp/id1222410811?mt=8](https://itunes.apple.com/us/app/easyrtmp/id1222410811?mt=8 "EasyRTMP_iOS")
 
-	![](http://www.easydarwin.org/github/images/easyrtmpios20170409.png)
+	![](http://www.easydarwin.org/github/images/app/2020/easyrtmp_iOS.png)
 
 ## 调用过程 ##
 
