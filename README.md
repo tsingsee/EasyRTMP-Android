@@ -44,7 +44,7 @@ EasyRTMP是[TSINGSEE青犀开放平台](http://open.tsingsee.com "TSINGSEE青犀
 
 ## 技术支持 ##
 
-- 邮件：[support@easydarwin.org](mailto:support@easydarwin.org) 
+- 邮件：[support@tsingsee.com](mailto:support@tsingsee.com) 
 
 - QQ交流群：<a href="https://jq.qq.com/?_wv=1027&k=5dkmdix" title="EasyRTMP" target="_blank">**587254841**</a>
 
@@ -53,12 +53,7 @@ EasyRTMP是[TSINGSEE青犀开放平台](http://open.tsingsee.com "TSINGSEE青犀
 
 ## 获取更多信息 ##
 
-**EasyDarwin**开源流媒体服务器：[www.EasyDarwin.org](http://www.easydarwin.org)
+TSINGSEE青犀开放平台：[http://open.tsingsee.com](http://open.tsingsee.com "TSINGSEE青犀开放平台")
 
-**EasyDSS**商用流媒体解决方案：[www.EasyDSS.com](http://www.easydss.com)
+Copyright &copy; TSINGSEE.com 2012~2020
 
-**EasyNVR**无插件直播方案：[www.EasyNVR.com](http://www.easynvr.com)
-
-Copyright &copy; EasyDarwin Team 2012-2018
-
-![EasyDarwin](http://www.easydarwin.org/skin/easydarwin/images/wx_qrcode.jpg)
