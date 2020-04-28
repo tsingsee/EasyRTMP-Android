@@ -29,7 +29,7 @@ public class SWConsumer extends Thread implements VideoConsumer {
     private volatile boolean mVideoStarted;
     private int bitrateKbps;
 
-    final int millisPerFrame = 1000 / 20;
+    final int millisPerFrame = 1000 / 30;
     long lastPush = 0;
 
     private ArrayBlockingQueue<TimedBuffer> yuvs = new ArrayBlockingQueue<TimedBuffer>(2);
@@ -82,7 +82,7 @@ public class SWConsumer extends Thread implements VideoConsumer {
 
         x264 = new X264Encoder();
         int bitrate = 72 * 1000 + bitrateKbps;
-        x264.create(width, height, 20, bitrate/1000);
+        x264.create(width, height, 30, bitrate/1000);
         mVideoStarted = true;
         start();
     }

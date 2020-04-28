@@ -48,7 +48,7 @@ public class HWConsumer extends Thread implements VideoConsumer {
     private MediaFormat newFormat;
     private byte[] yuv;
 
-    final int millisPerFrame = 1000 / 20;
+    final int millisPerFrame = 1000 / 30;
     long lastPush = 0;
 
     public HWConsumer(Context context, String mime, Pusher pusher, int bitrateKbps, String mName, int mColorFormat) {
@@ -289,7 +289,7 @@ public class HWConsumer extends Thread implements VideoConsumer {
      * 初始化编码器
      */
     private void startMediaCodec()  {
-        int frameRate = 20;
+        int frameRate = 30;
         int bitrate = 72 * 1000 + bitrateKbps;
 
         try {
