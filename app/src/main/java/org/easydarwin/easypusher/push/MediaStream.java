@@ -18,6 +18,7 @@ import android.util.Log;
 import com.serenegiant.usb.IFrameCallback;
 import com.serenegiant.usb.UVCCamera;
 
+import org.easydarwin.bus.CameraId;
 import org.easydarwin.bus.SupportResolution;
 import org.easydarwin.easypusher.BackgroundCameraService;
 import org.easydarwin.easypusher.EasyApplication;
@@ -626,6 +627,8 @@ public class MediaStream {
                 } else {
                     mCameraId = mTargetCameraId;
                 }
+
+                BUSUtil.BUS.post(new CameraId(mCameraId));
 
                 stopPreview();
                 destroyCamera();

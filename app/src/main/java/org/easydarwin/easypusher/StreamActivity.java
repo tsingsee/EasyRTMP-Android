@@ -15,6 +15,7 @@ import android.content.ServiceConnection;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.graphics.SurfaceTexture;
+import android.hardware.Camera;
 import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
 import android.os.Build;
@@ -40,6 +41,7 @@ import android.widget.Toast;
 
 import com.squareup.otto.Subscribe;
 
+import org.easydarwin.bus.CameraId;
 import org.easydarwin.bus.StartRecord;
 import org.easydarwin.bus.StopRecord;
 import org.easydarwin.bus.StreamStat;
@@ -81,6 +83,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
     Spinner spnResolution;
     TextView txtStatus, streamStat;
     TextView textRecordTick;
+    TextureView surfaceView;
 
     List<String> listResolution = new ArrayList<>();
 
@@ -273,7 +276,7 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
         btnSwitchCemera = findViewById(R.id.btn_switchCamera);
         txtStreamAddress = findViewById(R.id.txt_stream_address);
         textRecordTick = findViewById(R.id.tv_start_record);
-        final TextureView surfaceView = findViewById(R.id.sv_surfaceview);
+        surfaceView = findViewById(R.id.sv_surfaceview);
         View pushScreen = findViewById(R.id.push_screen_container);
         ImageView push_screen = findViewById(R.id.streaming_activity_push_screen);
 
@@ -598,6 +601,15 @@ public class StreamActivity extends AppCompatActivity implements View.OnClickLis
             case EASY_ACTIVATE_VALIDITY_PERIOD_ERR:
                 sendMessage("进程名称长度不匹配");
                 break;
+        }
+    }
+
+    @Subscribe
+    public void onStopRecord(CameraId cameraId) {
+        if (cameraId.getmCameraId() == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+            surfaceView.setScaleX(-1);
+        } else {
+            surfaceView.setScaleX(1);
         }
     }
 
