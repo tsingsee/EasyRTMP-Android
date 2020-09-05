@@ -10,8 +10,8 @@ android {
         targetSdkVersion 26
 //        versionCode generateVersionCode()
 //        versionName generateVersionName()
-        versionCode 14200630
-        versionName '1.4.20.0630'
+        versionCode 14200826
+        versionName '1.4.20.0826'
         testInstrumentationRunner 'android.support.test.runner.AndroidJUnitRunner'
         flavorDimensions "versionCode"
 
@@ -24,7 +24,7 @@ android {
             /*
             *本Key为3个月临时授权License，如需商业使用，请邮件至support@easydss.com了解此产品的授权信息。
             */
-            buildConfigField 'String', 'RTMP_KEY', "\"79736C36655A36526D3432416C2F4A656F51316F50656876636D63755A57467A65575268636E64706269356C59584E35636E52746346634D5671442F7666396C59584E35\""
+            buildConfigField 'String', 'RTMP_KEY', "\"79736C36655A36526D343041706B56666F4C705A30656876636D63755A57467A65575268636E64706269356C59584E35636E52746346634D5671442F3066396C59584E35\""
         }
 
         ndk {
