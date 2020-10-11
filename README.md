@@ -27,7 +27,7 @@ EasyRTMP是[TSINGSEE青犀开放平台](http://open.tsingsee.com "TSINGSEE青犀
 
 - EasyRTMP Android：支持前/后摄像头直播、安卓屏幕直播
 
-	[http://d.alphaqr.com/easyrtmp](http://d.alphaqr.com/easyrtmp)
+	[http://app.tsingsee.com/easyrtmp](http://app.tsingsee.com/easyrtmp)
 
 	![EasyRTMP Android](http://www.easydarwin.org/github/images/app/2020/easyrtmp_android.png)
 
